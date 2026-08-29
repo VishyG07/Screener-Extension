@@ -1,4 +1,4 @@
-﻿/* Google Material Design 3 Theme */
+/* Google Material Design 3 Theme */
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500&display=swap');
 
 html {
@@ -294,6 +294,174 @@ body {
 }
 .screener-del-btn:hover {
   background-color: #f1f3f4;
+  color: #d93025;
+}
+
+/* Autocomplete Suggestions */
+.screener-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #dadce0;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+  margin-top: 4px;
+}
+.screener-suggestion-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #202124;
+  font-family: Roboto, sans-serif;
+}
+.screener-suggestion-item:not(:last-child) {
+  border-bottom: 1px solid #f1f3f4;
+}
+.screener-suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+/* Add to Watchlist Button Override */
+#btn-search-add-wl {
+  background-color: #fdfdfd;
+  color: #1a73e8;
+  border: 1px solid #dadce0;
+  box-shadow: none;
+}
+#btn-search-add-wl:hover {
+  background-color: #f1f3f4;
+  box-shadow: none;
+}
+/* --- DARK MODE --- */
+body.dark-mode {
+  background-color: #202124;
+  color: #e8eaed;
+}
+body.dark-mode .screener-header,
+body.dark-mode .screener-tabs,
+body.dark-mode .screener-view {
+  background-color: #202124;
+  border-color: #3c4043;
+}
+body.dark-mode .screener-header h2 {
+  color: #e8eaed;
+}
+body.dark-mode .screener-tab {
+  color: #9aa0a6;
+}
+body.dark-mode .screener-tab.active {
+  color: #8ab4f8;
+  border-color: #8ab4f8;
+}
+body.dark-mode .screener-tab:hover:not(.active) {
+  background-color: #303134;
+  color: #e8eaed;
+}
+body.dark-mode .screener-input {
+  background-color: #202124;
+  color: #e8eaed;
+  border-color: #5f6368;
+}
+body.dark-mode .screener-input:focus {
+  border-color: #8ab4f8;
+}
+body.dark-mode .screener-btn {
+  background-color: #8ab4f8;
+  color: #202124;
+}
+body.dark-mode .screener-results h3 {
+  color: #e8eaed;
+}
+body.dark-mode .screener-ratios {
+  border-color: #3c4043;
+}
+body.dark-mode .screener-ratios li {
+  border-color: #3c4043;
+}
+body.dark-mode .screener-ratios li:nth-child(even) {
+  background-color: #303134;
+}
+body.dark-mode .ratio-name {
+  color: #9aa0a6;
+}
+body.dark-mode .ratio-value {
+  color: #e8eaed;
+}
+body.dark-mode .screener-about {
+  background-color: #303134;
+  border-color: #3c4043;
+  color: #bdc1c6;
+}
+body.dark-mode .screener-about strong {
+  color: #e8eaed;
+}
+body.dark-mode .screener-watchlist-card {
+  background-color: #202124;
+  border-color: #3c4043;
+}
+body.dark-mode .screener-watchlist-card h4 a,
+body.dark-mode .screener-ext-link {
+  color: #8ab4f8;
+}
+body.dark-mode .screener-wl-stat-label {
+  color: #9aa0a6;
+}
+body.dark-mode .screener-wl-stat-val {
+  color: #e8eaed;
+}
+body.dark-mode .screener-suggestions {
+  background-color: #303134;
+  border-color: #5f6368;
+}
+body.dark-mode .screener-suggestion-item {
+  color: #e8eaed;
+  border-color: #3c4043;
+}
+body.dark-mode .screener-suggestion-item:hover {
+  background-color: #3c4043;
+}
+body.dark-mode .screener-del-btn:hover {
+  background-color: #303134;
+}
+body.dark-mode #btn-search-add-wl {
+  background-color: #202124;
+  color: #8ab4f8;
+  border-color: #5f6368;
+}
+body.dark-mode #btn-search-add-wl:hover {
+  background-color: #303134;
+}
+.screener-theme-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+.screener-theme-btn:hover {
+  background-color: #f1f3f4;
+}
+body.dark-mode .screener-theme-btn:hover {
+  background-color: #3c4043;
+}
+
+/* Inline overrides */
+body.dark-mode [style*="color:#202124"],
+body.dark-mode [style*="color: #202124"] { color: #e8eaed !important; }
+body.dark-mode [style*="color:#5f6368"],
+body.dark-mode [style*="color: #5f6368"] { color: #9aa0a6 !important; }
+body.dark-mode [style*="border: 1px solid #dadce0"] { border-color: #3c4043 !important; }
+body.dark-mode [style*="border-bottom: 1px solid #dadce0"] { border-color: #3c4043 !important; }
+body.dark-mode [style*="background-color: #f8f9fa"] { background-color: #303134 !important; }
+body.dark-mode [style*="color:#188038"] { color: #81c995 !important; }
 
 /* Flash Animations */
 @keyframes flashGreen {
