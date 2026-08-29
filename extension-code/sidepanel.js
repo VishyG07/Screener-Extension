@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const tabSearch = document.getElementById('tab-search');
   const tabWatchlist = document.getElementById('tab-watchlist');
@@ -48,11 +48,6 @@
     document.body.classList.toggle('dark-mode');
     const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
     chrome.storage.local.set({ theme });
-  });
-
-  alert("You've been upgraded to PRO (Mock Checkout Successful!)");
-    tabPro.style.display = 'none';
-    switchTab(tabWatchlist, viewWatchlist);
   });
 
   // --- Multi-Portfolio Logic ---
