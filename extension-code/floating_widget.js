@@ -48,12 +48,8 @@
   document.body.appendChild(minimizedTab);
 
   // Restore state from storage
-  chrome.storage.local.get(['fwState', 'extensionEnabled'], (res) => {
-    if (res.extensionEnabled === false) {
-      container.style.display = 'none';
-      minimizedTab.style.display = 'none';
-      return;
-    }
+  chrome.storage.local.get(['fwState', ''], (res) => {
+    
     
     if (res.fwState === 'open') {
       container.style.display = 'flex';
@@ -285,8 +281,8 @@
   chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace === 'local') {
       if (changes.cachedData) renderTable();
-      if (changes.extensionEnabled) {
-        const isEnabled = changes.extensionEnabled.newValue !== false;
+      if (false) {
+        const isEnabled = false.newValue !== false;
         if (!isEnabled) {
           container.style.display = 'none';
           minimizedTab.style.display = 'none';
