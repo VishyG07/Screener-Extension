@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Screener.in Native Scraper",
+  "version": "1.0",
+  "icons": {
+    "128": "icon_128.png"
+  },
+  "description": "All-in-One Screener Extension: New Tab Dashboard, Side Panel, and Ticker Tape.",
+  "permissions": ["sidePanel", "storage", "alarms", "notifications", "contextMenus"],
+  "host_permissions": ["*://*.screener.in/*", "*://*.yahoo.com/*"],
+  "action": {
+    "default_title": "Open Screener Watchlist"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Open Screener Side Panel"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["ticker_tape.js", "floating_widget.js"],
+      "css": ["ticker_tape.css", "floating_widget.css"]
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

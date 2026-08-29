@@ -1,0 +1,268 @@
+// Open side panel on action icon click
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => console.error(error));
+
+// Fetch helper
+function roundStringValue(str) {
+  const numMatch = str.match(/[\d,\.]+/);
+  if (!numMatch) return str;
+  const numStr = numMatch[0];
+  const num = parseFloat(numStr.replace(/,/g, ''));
+  if (isNaN(num)) return str;
+  const rounded = num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return str.replace(numStr, rounded);
+}
+
+async function fetchScreenerData(ticker) {
+  try {
+    let response = await fetch(`https://www.screener.in/company/${ticker}/consolidated/`);
+    if (!response.ok) {
+      response = await fetch(`https://www.screener.in/company/${ticker}/`);
+      if (!response.ok) throw new Error('Not found');
+    }
+    const htmlText = await response.text();
+    
+    // We must use a simple regex or a lightweight parser because DOMParser is not available in Service Workers
+    const extractName = htmlText.match(/<h1[^>]*>([^<]+)<\/h1>/);
+    const companyName = extractName ? extractName[1].trim() : ticker;
+
+    const ratios = {};
+    
+    // Look for top-ratios block
+    const ratiosMatch = htmlText.match(/<ul id="top-ratios">([\s\S]*?)<\/ul>/);
+    if (ratiosMatch) {
+      const listHtml = ratiosMatch[1];
+      const liRegex = /<li[^>]*>[\s\S]*?<span class="name">([^<]+)<\/span>[\s\S]*?<span class="nowrap value">([\s\S]*?)<\/span>[\s\S]*?<\/li>/g;
+      
+      let match;
+      while ((match = liRegex.exec(listHtml)) !== null) {
+        let name = match[1].trim();
+        let valueStr = match[2].replace(/<[^>]+>/g, '').trim().replace(/\s+/g, ' ');
+        ratios[name] = roundStringValue(valueStr);
+      }
+    }
+
+    // Extract daily percentage change
+    const pctMatch = htmlText.match(/class="[^"]*\b(up|down)\b[^"]*">\s*<i[^>]+><\/i>\s*([-+\d\.]+%)\s*<\/span>/);
+    let changeDir = '';
+    let changePct = '';
+    if (pctMatch) {
+      changeDir = pctMatch[1]; // 'up' or 'down'
+      changePct = roundStringValue(pctMatch[2]);
+    }
+
+    const aboutMatch = htmlText.match(/class="sub show-more-box about"[^>]*>([\s\S]*?)<\/div>/);
+    let aboutText = '';
+    if (aboutMatch) {
+      aboutText = aboutMatch[1].replace(/<[^>]+>/g, '').trim();
+    }
+
+    // Fetch Sparkline data (last 7 days closing prices) from Yahoo Finance
+    let sparkline = [];
+    try {
+      const yahooRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.NS?interval=1d&range=7d`);
+      if (yahooRes.ok) {
+        const yahooData = await yahooRes.json();
+        const quotes = yahooData.chart.result[0].indicators.quote[0];
+        // filter out nulls
+        sparkline = quotes.close.filter(p => p !== null).map(p => parseFloat(p.toFixed(2)));
+      }
+    } catch (e) {}
+
+    return { success: true, ticker, companyName, ratios, aboutText, changeDir, changePct, sparkline };
+  } catch (err) {
+    return { success: false, ticker, error: err.message };
+  }
+}
+
+async function fetchIndices() {
+  try {
+    const indices = {};
+    const formatPrice = (num) => Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    
+    const niftyRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/^NSEI?interval=1d');
+    if (niftyRes.ok) {
+      const data = await niftyRes.json();
+      const meta = data.chart.result[0].meta;
+      indices['NIFTY 50'] = {
+        price: formatPrice(meta.regularMarketPrice),
+        changePct: Number(meta.regularMarketChangePercent).toFixed(2)
+      };
+    }
+    const sensexRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/^BSESN?interval=1d');
+    if (sensexRes.ok) {
+      const data = await sensexRes.json();
+      const meta = data.chart.result[0].meta;
+      indices['SENSEX'] = {
+        price: formatPrice(meta.regularMarketPrice),
+        changePct: Number(meta.regularMarketChangePercent).toFixed(2)
+      };
+    }
+    return indices;
+  } catch (err) {
+    console.error('Error fetching indices', err);
+    return null;
+  }
+}
+
+// Background syncing logic
+async function syncWatchlistData() {
+  const { portfolios = {}, screenerWatchlist = [], priceAlerts = {}, cachedData: oldCachedData = {}, marketIndices: oldIndices = {} } = await chrome.storage.local.get(['portfolios', 'screenerWatchlist', 'priceAlerts', 'cachedData', 'marketIndices']);
+  
+  // Combine screenerWatchlist and all portfolio lists into one master list of unique tickers to fetch
+  let allTickers = [...screenerWatchlist];
+  for (const list of Object.values(portfolios)) {
+    allTickers.push(...list);
+  }
+  allTickers = [...new Set(allTickers)]; // remove duplicates
+  
+  const cachedData = {};
+  for (const ticker of allTickers) {
+    const data = await fetchScreenerData(ticker);
+    
+    // Compare price for flash animation
+    const oldData = oldCachedData[ticker];
+    if (oldData && oldData.success && data.success) {
+       const oldPrice = parseFloat((oldData.ratios['Current Price'] || '0').replace(/,/g, ''));
+       const newPrice = parseFloat((data.ratios['Current Price'] || '0').replace(/,/g, ''));
+       if (newPrice > oldPrice) {
+           data.flash = 'up';
+           data.flashTime = Date.now();
+       } else if (newPrice < oldPrice) {
+           data.flash = 'down';
+           data.flashTime = Date.now();
+       }
+    }
+    
+    cachedData[ticker] = data;
+
+    // Check Price Alerts
+    if (priceAlerts[ticker] && data.success) {
+      const priceStr = data.ratios['Current Price'];
+      if (priceStr) {
+        const currentPrice = parseFloat(priceStr.replace(/,/g, ''));
+        const alert = priceAlerts[ticker];
+        
+        let triggered = false;
+        if (alert.condition === 'above' && currentPrice >= alert.target) triggered = true;
+        if (alert.condition === 'below' && currentPrice <= alert.target) triggered = true;
+
+        if (triggered && !alert.notified) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'chrome://favicon/https://www.screener.in',
+            title: 'Screener Price Alert',
+            message: `${ticker} has crossed your target of ${alert.target} (Current: ${currentPrice})`
+          });
+          priceAlerts[ticker].notified = true;
+        } else if (!triggered) {
+          // reset if it goes out of threshold
+          priceAlerts[ticker].notified = false;
+        }
+      }
+    }
+
+    // Sleep slightly to avoid spamming
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  const indices = await fetchIndices();
+  if (indices) {
+    for (const key of ['SENSEX', 'NIFTY 50']) {
+      if (indices[key] && oldIndices[key]) {
+        const oldPrice = parseFloat((oldIndices[key].price || '0').replace(/,/g, ''));
+        const newPrice = parseFloat((indices[key].price || '0').replace(/,/g, ''));
+        if (newPrice > oldPrice) {
+            indices[key].flash = 'up';
+            indices[key].flashTime = Date.now();
+        } else if (newPrice < oldPrice) {
+            indices[key].flash = 'down';
+            indices[key].flashTime = Date.now();
+        }
+      }
+    }
+  }
+
+  await chrome.storage.local.set({ cachedData, marketIndices: indices, priceAlerts, lastSync: Date.now() });
+  
+  // Notify tabs that data was updated so they can refresh
+  chrome.runtime.sendMessage({ type: 'WATCHLIST_UPDATED' }).catch(() => {});
+}
+
+// Set up alarm to sync every 5 minutes
+chrome.alarms.create('syncWatchlist', { periodInMinutes: 5 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'syncWatchlist') {
+    syncWatchlistData();
+  }
+});
+
+// Run once on startup
+syncWatchlistData();
+
+// Listen for forced syncs from UI
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'FORCE_SYNC') {
+    if (message.ticker) {
+      fetchScreenerData(message.ticker).then(data => {
+        chrome.storage.local.get(['cachedData'], (res) => {
+          const cachedData = res.cachedData || {};
+          cachedData[message.ticker] = data;
+          chrome.storage.local.set({ cachedData }, () => {
+             sendResponse({ success: true });
+          });
+        });
+      });
+    } else {
+      syncWatchlistData().then(() => sendResponse({ success: true }));
+    }
+    return true;
+  }
+
+  if (message.type === 'SEARCH_COMPANY') {
+    fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(message.query)}`)
+      .then(res => res.ok ? res.json() : [])
+      .then(results => sendResponse(results))
+      .catch(() => sendResponse([]));
+    return true;
+  }
+});
+
+// --- Context Menu Logic ---
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "addToScreener",
+    title: 'Add "%s" to Screener Watchlist',
+    contexts: ["selection"]
+  });
+});
+
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === "addToScreener") {
+    const query = info.selectionText.trim();
+    if (!query) return;
+    try {
+      const res = await fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(query)}`);
+      const results = await res.json();
+      if (results && results.length > 0) {
+        const parts = results[0].url.split('/');
+        const ticker = parts[2];
+        const { screenerWatchlist = [] } = await chrome.storage.local.get(['screenerWatchlist']);
+        if (!screenerWatchlist.includes(ticker)) {
+          screenerWatchlist.push(ticker);
+          await chrome.storage.local.set({ screenerWatchlist });
+          syncWatchlistData(); // fetch new data immediately
+          // Notify user via a silent push notification
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'chrome://favicon/https://www.screener.in',
+            title: 'Screener Watchlist',
+            message: `Added ${ticker} to your watchlist!`,
+            silent: true
+          });
+        }
+      }
+    } catch(err) {
+      console.error('Context menu search failed', err);
+    }
+  }
+});

@@ -1,0 +1,9 @@
+﻿*.zip
+*.html
+!sidepanel.html
+!extension-code/sidepanel.html
+.DS_Store
+node_modules/
+*/node_modules/
+package-lock.json
+

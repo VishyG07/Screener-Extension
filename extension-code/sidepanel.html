@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header -->
+  <div class="screener-header">
+    <h2>Screener Data</h2>
+    <button id="theme-toggle" class="screener-theme-btn" title="Toggle Dark Mode">&#x1F313;</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="screener-tabs">
+    <div id="tab-search" class="screener-tab active">Search</div>
+    <div id="tab-watchlist" class="screener-tab">Watchlist</div>
+    <div id="tab-news" class="screener-tab">News</div>
+  </div>
+
+  <!-- Search View -->
+  <div id="view-search" class="screener-view active">
+    <div class="screener-search-container" style="position:relative; margin-top:16px;">
+      <input type="text" id="input-search" class="screener-input" placeholder="Enter Ticker (e.g., RELIANCE)">
+      <button id="btn-search" class="screener-btn">Search</button>
+      <div id="search-suggestions" class="screener-suggestions"></div>
+    </div>
+    <div id="results-search" class="screener-results">
+        <div style="color:#5f6368; text-align:center; padding:40px 0;">Search for a stock to see quick ratios.</div>
+    </div>
+  </div>
+
+  <!-- Watchlist View -->
+  <div id="view-watchlist" class="screener-view">
+    <div style="display:flex; justify-content:space-between; margin-bottom:12px; margin-top:16px;">
+      <select id="portfolio-select" class="screener-input" style="flex:1; margin-right:12px; padding:8px 12px; border-radius:4px; border:1px solid #dadce0; cursor:pointer;">
+        <option value="Default">Default Portfolio</option>
+      </select>
+      <button id="btn-new-portfolio" class="screener-btn" style="margin-right:16px;" title="New Portfolio">+</button>
+      <button id="btn-export-csv" class="screener-btn" style="background:#188038;" title="Export to Excel">Export CSV</button>
+    </div>
+    <div class="screener-search-container" style="position:relative;">
+      <input type="text" id="input-wl-add" class="screener-input" placeholder="Add Ticker...">
+      <button id="btn-wl-add" class="screener-btn">Add</button>
+      <div id="wl-suggestions" class="screener-suggestions"></div>
+    </div>
+    <div id="wl-items-container" class="screener-watchlist-items"></div>
+  </div>
+
+  <!-- News View -->
+  <div id="view-news" class="screener-view">
+    <div id="news-container" style="padding-top:8px;">Loading latest news...</div>
+  </div>
+
+  <!-- Footer (Monetization) -->
+  <div style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
+    <a id="bmc-link" href="https://buymeacoffee.com/techieajju" target="_blank" 
+       style="display: inline-block; background: #FFDD00; color: #000; padding: 10px 20px; border-radius: 20px; font-weight: bold; text-decoration: none; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s;">
+      &#x2615; Buy me a coffee
+    </a>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
