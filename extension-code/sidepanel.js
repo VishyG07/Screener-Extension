@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const wlSuggestions = document.getElementById('wl-suggestions');
 
   const themeToggle = document.getElementById('theme-toggle');
-  const masterToggle = document.getElementById('master-toggle');
   
   const portfolioSelect = document.getElementById('portfolio-select');
   const btnNewPortfolio = document.getElementById('btn-new-portfolio');
@@ -41,13 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
   tabWatchlist.addEventListener('click', () => switchTab(tabWatchlist, viewWatchlist));
   tabNews.addEventListener('click', () => switchTab(tabNews, viewNews));
   // Load Settings
-  chrome.storage.local.get(['theme', 'extensionEnabled'], (res) => {
+  chrome.storage.local.get(['theme'], (res) => {
     if (res.theme === 'dark') document.body.classList.add('dark-mode');
-    masterToggle.checked = (res.extensionEnabled !== false);
-  });
-
-  masterToggle.addEventListener('change', (e) => {
-    chrome.storage.local.set({ extensionEnabled: e.target.checked });
   });
 
   themeToggle.addEventListener('click', () => {
