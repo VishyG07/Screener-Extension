@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
               allNewsHtml += `
                 <div style="padding: 12px; border-bottom: 1px solid #dadce0;">
                   <a href="${item.link}" target="_blank" style="color:#202124; text-decoration:none; font-size:14px; display:block; margin-bottom:4px;">${item.title}</a>
-                  <div style="font-size:11px; color:#5f6368;">${item.publisher} â€¢ ${new Date(item.providerPublishTime*1000).toLocaleDateString()}</div>
+                    <div style="font-size:11px; color:#5f6368;">${item.publisher} &bull; ${new Date(item.providerPublishTime*1000).toLocaleDateString()}</div>
                 </div>
               `;
             });
