@@ -2,8 +2,6 @@
 
 A powerful Chrome extension that acts as a real-time mirror to your Screener.in account and Yahoo Finance, bringing financial data, stock watchlists, and market indices directly to your fingertips on any webpage you visit.
 
-[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/techieajju)
-
 ## ✨ Features
 
 - **🚀 Live Ticker Tape:** See real-time price updates and percentage changes for NIFTY 50, SENSEX, and your personal watchlist across the top of any webpage.
