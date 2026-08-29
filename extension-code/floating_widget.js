@@ -47,10 +47,17 @@
   minimizedTab.title = "Open Screener Watchlist";
   document.body.appendChild(minimizedTab);
 
-  // Restore state from storage (so if user minimized it, it stays minimized across pages)
-  chrome.storage.local.get(['fwState'], (res) => {
+  // Restore state from storage
+  chrome.storage.local.get(['fwState', 'extensionEnabled'], (res) => {
+    if (res.extensionEnabled === false) {
+      container.style.display = 'none';
+      minimizedTab.style.display = 'none';
+      return;
+    }
+    
     if (res.fwState === 'open') {
       container.style.display = 'flex';
+      minimizedTab.style.display = 'none';
     } else if (res.fwState === 'closed') {
       // closed completely
     } else {
@@ -276,7 +283,26 @@
     if (msg.type === 'WATCHLIST_UPDATED') renderTable();
   });
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.cachedData) renderTable();
+    if (namespace === 'local') {
+      if (changes.cachedData) renderTable();
+      if (changes.extensionEnabled) {
+        const isEnabled = changes.extensionEnabled.newValue !== false;
+        if (!isEnabled) {
+          container.style.display = 'none';
+          minimizedTab.style.display = 'none';
+        } else {
+          // Re-evaluate state
+          chrome.storage.local.get(['fwState'], (res) => {
+            if (res.fwState === 'open') {
+              container.style.display = 'flex';
+              minimizedTab.style.display = 'none';
+            } else if (res.fwState !== 'closed') {
+              minimizedTab.style.display = 'block';
+            }
+          });
+        }
+      }
+    }
   });
 
   renderTable();

@@ -18,7 +18,14 @@
   document.documentElement.classList.add('screener-tape-active');
 
   function renderTape() {
-    chrome.storage.local.get(['cachedData', 'screenerWatchlist', 'marketIndices'], (res) => {
+    chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices', 'extensionEnabled'], (res) => {
+      const isEnabled = res.extensionEnabled !== false;
+      if (!isEnabled) {
+        tapeDiv.style.display = 'none';
+        document.documentElement.classList.remove('screener-tape-active');
+        return;
+      }
+      
       const list = res.screenerWatchlist || [];
       const cached = res.cachedData || {};
       const indices = res.marketIndices || {};
@@ -122,7 +129,7 @@
 
   // Also listen to storage changes directly
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && (changes.cachedData || changes.screenerWatchlist)) {
+    if (namespace === 'local' && (changes.cachedData || changes.screenerWatchlist || changes.extensionEnabled)) {
       renderTape();
     }
   });
