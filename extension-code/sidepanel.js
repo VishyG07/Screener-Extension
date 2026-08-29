@@ -88,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   loadPortfolios();
+  renderDefaultSearch();
 
   portfolioSelect.addEventListener('change', (e) => {
     activePortfolio = e.target.value;
@@ -384,6 +385,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- Default Search Render (Indices) ---
+  function renderDefaultSearch() {
+    chrome.storage.local.get(['marketIndices'], (res) => {
+      const indices = res.marketIndices || {};
+      const isDark = document.body.classList.contains('dark-mode');
+      const bg = isDark ? '#303134' : '#f1f3f4';
+      const border = isDark ? '#3c4043' : '#e8eaed';
+      const textColor = isDark ? '#e8eaed' : '#202124';
+      const labelColor = isDark ? '#9aa0a6' : '#5f6368';
+
+      if (Object.keys(indices).length === 0) {
+        resultsSearch.innerHTML = `<div style="color:${labelColor}; text-align:center; padding:40px 0;">Search for a stock to see quick ratios.</div>`;
+        return;
+      }
+
+      let html = `<div style="color:${labelColor}; text-align:center; padding-bottom:16px; font-size:13px; font-weight:500;">Market Indices</div>`;
+      html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
+      
+      for (const [name, data] of Object.entries(indices)) {
+        const changeVal = parseFloat(data.changePct || '0');
+        const changeColor = changeVal > 0 ? '#188038' : (changeVal < 0 ? '#d93025' : labelColor);
+        const changeSign = changeVal > 0 ? '&#9650;' : (changeVal < 0 ? '&#9660;' : '');
+        const flashClass = data.flash && (Date.now() - (data.flashTime || 0) < 5000) ? (data.flash === 'up' ? 'screener-flash-up' : 'screener-flash-down') : '';
+
+        html += `
+          <div style="background:${bg}; border:1px solid ${border}; border-radius:8px; padding:12px; text-align:center;">
+            <div style="font-weight:600; color:${textColor}; font-size:14px; margin-bottom:8px;">${name}</div>
+            <div class="${flashClass}" style="font-weight:bold; font-size:16px; color:${textColor}; margin-bottom:4px;">&#8377; ${data.price}</div>
+            <div style="color:${changeColor}; font-size:12px; font-weight:500;">${changeSign} ${data.changePct}%</div>
+          </div>
+        `;
+      }
+      
+      html += `</div>`;
+      html += `<div style="color:${labelColor}; text-align:center; padding:40px 0 20px 0; font-size:13px;">Search for a stock above to see quick ratios.</div>`;
+      
+      resultsSearch.innerHTML = html;
+    });
+  }
+
   // --- News Render ---
   function renderNews() {
     chrome.storage.local.get(['portfolios'], async (res) => {
@@ -452,6 +493,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const query = inputElement.value.trim();
     if (query.length < 2) {
       suggestionsContainer.style.display = 'none';
+      if (query.length === 0 && inputElement === inputSearch) {
+        renderDefaultSearch();
+      }
       return;
     }
     debounceTimer = setTimeout(async () => {
