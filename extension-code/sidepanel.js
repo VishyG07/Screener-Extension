@@ -43,21 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load Settings
   chrome.storage.local.get(['theme', 'extensionEnabled'], (res) => {
     if (res.theme === 'dark') document.body.classList.add('dark-mode');
-    if (res.extensionEnabled === false) {
-      masterToggle.style.color = '#dc3545'; // red for OFF
-    } else {
-      masterToggle.style.color = '#188038'; // green for ON
-    }
+    masterToggle.checked = (res.extensionEnabled !== false);
   });
 
-  masterToggle.addEventListener('click', () => {
-    chrome.storage.local.get(['extensionEnabled'], (res) => {
-      const isCurrentlyEnabled = res.extensionEnabled !== false;
-      const newState = !isCurrentlyEnabled;
-      
-      masterToggle.style.color = newState ? '#188038' : '#dc3545';
-      chrome.storage.local.set({ extensionEnabled: newState });
-    });
+  masterToggle.addEventListener('change', (e) => {
+    chrome.storage.local.set({ extensionEnabled: e.target.checked });
   });
 
   themeToggle.addEventListener('click', () => {
