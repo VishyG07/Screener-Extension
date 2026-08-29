@@ -7,7 +7,7 @@
   },
   "description": "All-in-One Screener Extension: New Tab Dashboard, Side Panel, and Ticker Tape.",
   "permissions": ["sidePanel", "storage", "alarms", "notifications", "contextMenus"],
-  "host_permissions": ["*://*.screener.in/*", "*://*.yahoo.com/*"],
+  "host_permissions": ["*://*.screener.in/*", "*://*.yahoo.com/*", "*://news.google.com/*"],
   "action": {
     "default_title": "Open Screener Watchlist"
   },

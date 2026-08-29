@@ -421,31 +421,34 @@ document.addEventListener('DOMContentLoaded', () => {
       newsContainer.innerHTML = '<div class="screener-loading" style="text-align:center; padding:20px;">Fetching latest financial news...</div>';
       
       let allNewsHtml = '';
-      // We will mock fetch news for demonstration, or actually fetch from Yahoo Finance RSS
       for (const ticker of list.slice(0, 3)) { // fetch news for top 3 to be fast
-        try {
-          const feedRes = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${ticker}.NS`);
-          const feedData = await feedRes.json();
-          const rawNews = feedData.news || [];
-          const newsItems = rawNews.filter(item => {
-            if (!item.relatedTickers) return false;
-            return item.relatedTickers.includes(ticker) || 
-                   item.relatedTickers.includes(ticker + '.NS') || 
-                   item.relatedTickers.includes(ticker + '.BO');
-          });
-          
-          if (newsItems.length > 0) {
-            allNewsHtml += `<div style="font-size:12px; font-weight:bold; color:#188038; margin-top:12px; margin-bottom:4px; padding:0 12px;">${ticker} NEWS</div>`;
-            newsItems.slice(0,2).forEach(item => {
-              allNewsHtml += `
-                <div style="padding: 12px; border-bottom: 1px solid #dadce0;">
-                  <a href="${item.link}" target="_blank" style="color:#202124; text-decoration:none; font-size:14px; display:block; margin-bottom:4px;">${item.title}</a>
-                    <div style="font-size:11px; color:#5f6368;">${item.publisher} &bull; ${new Date(item.providerPublishTime*1000).toLocaleDateString()}</div>
-                </div>
-              `;
-            });
+          try {
+            const feedRes = await fetch(`https://news.google.com/rss/search?q=${ticker}+stock&hl=en-IN&gl=IN&ceid=IN:en`);
+            const text = await feedRes.text();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(text, 'text/xml');
+            const items = Array.from(xml.querySelectorAll('item')).slice(0, 2);
+            
+            if (items.length > 0) {
+              allNewsHtml += `<div style="font-size:12px; font-weight:bold; color:#188038; margin-top:12px; margin-bottom:4px; padding:0 12px;">${ticker} NEWS</div>`;
+              items.forEach(item => {
+                const title = item.querySelector('title')?.textContent || '';
+                const link = item.querySelector('link')?.textContent || '';
+                const pubDate = item.querySelector('pubDate')?.textContent || '';
+                const source = item.querySelector('source')?.textContent || 'Google News';
+                const dateStr = pubDate ? new Date(pubDate).toLocaleDateString() : '';
+                
+                allNewsHtml += `
+                  <div style="padding: 12px; border-bottom: 1px solid #dadce0;">
+                    <a href="${link}" target="_blank" style="color:#202124; text-decoration:none; font-size:14px; display:block; margin-bottom:4px;">${title}</a>
+                    <div style="font-size:11px; color:#5f6368;">${source} &bull; ${dateStr}</div>
+                  </div>
+                `;
+              });
+            }
+          } catch (e) {
+            console.error('News error for', ticker, e);
           }
-        } catch (e) {}
       }
       
       if (allNewsHtml === '') {
