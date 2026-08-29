@@ -283,9 +283,6 @@ body {
 }
 
 .screener-del-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
   background: none;
   border: none;
   color: #5f6368;
