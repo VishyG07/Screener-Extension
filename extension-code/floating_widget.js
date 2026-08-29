@@ -178,7 +178,7 @@
           tr.innerHTML = `
             <td>${ticker}</td>
             <td colspan="5" style="color:#d93025;">${data ? 'Error' : 'Syncing...'}</td>
-            <td><button class="screener-fw-del" data-ticker="${ticker}">X</button></td>
+            <td><button class="screener-fw-del" data-ticker="${ticker}" title="Delete">&#128465;</button></td>
           `;
         } else {
           const price = data.ratios['Current Price'] || '-';
@@ -202,7 +202,7 @@
             <td>${pe}</td>
             <td>${mcap}</td>
             <td>${roce}</td>
-            <td><button class="screener-fw-del" data-ticker="${ticker}">X</button></td>
+            <td><button class="screener-fw-del" data-ticker="${ticker}" title="Delete">&#128465;</button></td>
           `;
         }
         tbody.appendChild(tr);

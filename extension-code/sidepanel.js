@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
            html += `<tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
              <td style="padding:10px; text-align:left; color:#d93025;">${ticker}</td>
              <td colspan="4" style="padding:10px; color:#d93025; text-align:left;">Error: ${data.error}</td>
-             <td style="padding:10px; text-align:center;"><button class="screener-del-btn" data-ticker="${ticker}" style="background:none;border:none;color:#d93025;cursor:pointer;font-weight:bold;">X</button></td>
+             <td style="padding:10px; text-align:center;"><button class="screener-del-btn" data-ticker="${ticker}" style="background:none;border:none;color:#d93025;cursor:pointer;font-size:16px;" title="Delete ${ticker} from Watchlist">&#128465;</button></td>
            </tr>`;
         } else {
           let pctHtml = '';
@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <td style="padding:10px;">${data.ratios['Market Cap']||'-'}</td>
               <td style="padding:10px;">${data.ratios['ROCE']||'-'}</td>
               <td style="padding:10px; text-align:center;">
-                <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#5f6368; cursor:pointer; font-weight:bold; padding:4px 8px; border-radius:4px;">X</button>
+                <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#d93025; cursor:pointer; font-size:16px; padding:4px 8px; border-radius:4px;" title="Delete ${ticker} from Watchlist">&#128465;</button>
               </td>
             </tr>
           `;
