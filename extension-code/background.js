@@ -3,13 +3,12 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error
 
 // Fetch helper
 function roundStringValue(str) {
-  const numMatch = str.match(/[\d,\.]+/);
-  if (!numMatch) return str;
-  const numStr = numMatch[0];
-  const num = parseFloat(numStr.replace(/,/g, ''));
-  if (isNaN(num)) return str;
-  const rounded = num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return str.replace(numStr, rounded);
+  return str.replace(/[\d,\.]+/g, (match) => {
+    if (match === '.') return match;
+    const num = parseFloat(match.replace(/,/g, ''));
+    if (isNaN(num)) return match;
+    return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  });
 }
 
 async function fetchScreenerData(ticker) {
@@ -31,13 +30,18 @@ async function fetchScreenerData(ticker) {
     const ratiosMatch = htmlText.match(/<ul id="top-ratios">([\s\S]*?)<\/ul>/);
     if (ratiosMatch) {
       const listHtml = ratiosMatch[1];
-      const liRegex = /<li[^>]*>[\s\S]*?<span class="name">([^<]+)<\/span>[\s\S]*?<span class="nowrap value">([\s\S]*?)<\/span>[\s\S]*?<\/li>/g;
+      const liRegex = /<li[^>]*>([\s\S]*?)<\/li>/g;
       
       let match;
       while ((match = liRegex.exec(listHtml)) !== null) {
-        let name = match[1].trim();
-        let valueStr = match[2].replace(/<[^>]+>/g, '').trim().replace(/\s+/g, ' ');
-        ratios[name] = roundStringValue(valueStr);
+        const liHtml = match[1];
+        const nameMatch = liHtml.match(/<span class="name">\s*([^<]+)\s*<\/span>/);
+        if (nameMatch) {
+          let name = nameMatch[1].trim();
+          let afterName = liHtml.substring(nameMatch.index + nameMatch[0].length);
+          let valueStr = afterName.replace(/<[^>]+>/g, '').trim().replace(/\s+/g, ' ');
+          ratios[name] = roundStringValue(valueStr);
+        }
       }
     }
 
