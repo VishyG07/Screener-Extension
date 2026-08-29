@@ -108,6 +108,61 @@ async function fetchIndices() {
   }
 }
 
+chrome.runtime.onStartup.addListener(() => {
+  chrome.alarms.create('checkAlerts', { periodInMinutes: 5 });
+});
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.alarms.create('checkAlerts', { periodInMinutes: 5 });
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'checkAlerts') {
+    checkPriceAlerts();
+  }
+  if (alarm.name === 'syncWatchlist') {
+    syncWatchlistData();
+  }
+});
+
+async function checkPriceAlerts() {
+  chrome.storage.local.get(['alerts', 'portfolios'], async (res) => {
+    const alerts = res.alerts || {};
+    // Collect all tickers that have active alerts
+    const activeTickers = Object.keys(alerts).filter(t => alerts[t].above || alerts[t].below);
+    if (activeTickers.length === 0) return;
+
+    for (const ticker of activeTickers) {
+      try {
+        const fetchRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.NS?range=1d&interval=1d`);
+        const data = await fetchRes.json();
+        const price = data.chart.result[0].meta.regularMarketPrice;
+        
+        const threshold = alerts[ticker];
+        if (threshold.above && price > threshold.above) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon_128.png',
+            title: 'Price Alert Triggered! 📈',
+            message: `${ticker} has crossed above ₹${threshold.above} (Current: ₹${price})`
+          });
+          // Remove the alert once triggered
+          delete alerts[ticker].above;
+        }
+        if (threshold.below && price < threshold.below) {
+          chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icon_128.png',
+            title: 'Price Alert Triggered! 📉',
+            message: `${ticker} has dropped below ₹${threshold.below} (Current: ₹${price})`
+          });
+          delete alerts[ticker].below;
+        }
+      } catch (e) {}
+    }
+    chrome.storage.local.set({ alerts });
+  });
+}
+
 // Background syncing logic
 async function syncWatchlistData() {
   const { portfolios = {}, screenerWatchlist = [], priceAlerts = {}, cachedData: oldCachedData = {}, marketIndices: oldIndices = {} } = await chrome.storage.local.get(['portfolios', 'screenerWatchlist', 'priceAlerts', 'cachedData', 'marketIndices']);

@@ -211,9 +211,63 @@ document.addEventListener('DOMContentLoaded', () => {
              <a href="https://www.screener.in/company/${ticker}/" target="_blank" style="color:#1a73e8; font-size:12px; text-decoration:none; font-weight:500;">&#9881; Customize Parameters on Screener.in</a>
            </div>`;
            if (data.aboutText) html += `<div class="screener-about" style="margin-top:16px;">${data.aboutText}</div>`;
-           resultsSearch.innerHTML = html;
+             
+             html += `<div id="search-peers-container"></div>`;
+             html += `<div id="search-announcements-container"></div>`;
 
-           // Wire up the Add to Watchlist button
+             resultsSearch.innerHTML = html;
+
+             // Async fetch for Peers & Announcements
+             fetch(`https://www.screener.in/company/${ticker}/consolidated/`)
+               .then(r => {
+                 if (!r.ok) return fetch(`https://www.screener.in/company/${ticker}/`);
+                 return r;
+               })
+               .then(r => r.text())
+               .then(htmlStr => {
+                 const parser = new DOMParser();
+                 const doc = parser.parseFromString(htmlStr, 'text/html');
+                 
+                 // Parse Peers
+                 const peersTable = doc.querySelector('#peers table');
+                 if (peersTable) {
+                   const trs = Array.from(peersTable.querySelectorAll('tr'));
+                   trs.forEach(tr => {
+                      Array.from(tr.querySelectorAll('a')).forEach(a => a.style.color = linkColor);
+                      Array.from(tr.querySelectorAll('td')).forEach(td => td.style.padding = '8px');
+                   });
+                   const tableHtml = `<table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right; color:${valueColor}; white-space:nowrap;">${trs.slice(0,4).map(tr => {
+                     const isHeader = tr.querySelector('th');
+                     return `<tr style="border-bottom:1px solid ${tableBorder}; ${isHeader ? 'font-weight:bold; background:'+rowEven : ''}">${tr.innerHTML}</tr>`;
+                   }).join('')}</table>`;
+                   document.getElementById('search-peers-container').innerHTML = `<h4 style="margin:16px 0 8px 0; color:${textColor};">Peer Comparison</h4><div style="border:1px solid ${tableBorder}; border-radius:8px; overflow-x:auto;">${tableHtml}</div>`;
+                 }
+                 
+                 // Parse Announcements (Documents)
+                 const docsSec = doc.querySelector('#documents');
+                 if (docsSec) {
+                   // Announcements are usually the first <ul>
+                   const annList = docsSec.querySelector('ul');
+                   if (annList) {
+                     const lis = Array.from(annList.querySelectorAll('li')).slice(0, 5);
+                     const annHtml = lis.map(li => {
+                       const link = li.querySelector('a');
+                       if (link) {
+                         link.style.color = linkColor;
+                         link.style.textDecoration = 'none';
+                         if (link.href.startsWith('chrome-extension')) {
+                           link.href = 'https://www.screener.in' + link.getAttribute('href');
+                         }
+                       }
+                       return `<div style="padding:8px 0; border-bottom:1px solid ${tableBorder}; font-size:12px; color:${valueColor};">${li.innerHTML}</div>`;
+                     }).join('');
+                     document.getElementById('search-announcements-container').innerHTML = `<h4 style="margin:16px 0 8px 0; color:${textColor};">Company Announcements</h4>${annHtml}`;
+                   }
+                 }
+               })
+               .catch(() => {});
+  
+             // Wire up the Add to Watchlist button
            const addBtn = document.getElementById('btn-search-add-wl');
            if (addBtn) {
              addBtn.onclick = () => {
@@ -278,6 +332,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  function createSparkline(data) {
+    if (!data || data.length < 2) return '';
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 1;
+    const width = 50, height = 18;
+    const points = data.map((val, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((val - min) / range) * height;
+      return `${x},${y}`;
+    }).join(' ');
+    const isUp = data[data.length - 1] >= data[0];
+    const color = isUp ? '#188038' : '#d93025';
+    return `<svg viewBox="-2 -2 ${width + 4} ${height + 4}" width="${width}" height="${height}" style="overflow:visible; display:block; margin: 4px auto;"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  }
+
   function renderWatchlist() {
     chrome.storage.local.get(['portfolios', 'cachedData', 'priceAlerts'], (res) => {
       const ports = res.portfolios || {};
@@ -302,69 +372,71 @@ document.addEventListener('DOMContentLoaded', () => {
           <thead>
             <tr style="background:${headerBg}; border-bottom:1px solid ${tableBorder}; font-weight:600;">
               <td style="text-align:left; padding:10px;">Symbol</td>
+              <td style="padding:10px; text-align:center;">7D Trend</td>
               <td style="padding:10px;">Price</td>
               <td style="padding:10px;">P/E</td>
-              <td style="padding:10px;">M.Cap</td>
               <td style="padding:10px;">ROCE</td>
-              <td style="padding:10px; text-align:center;"></td>
+              <td style="padding:10px; text-align:center;">Actions</td>
             </tr>
           </thead>
           <tbody>`;
 
-      let idx = 0;
-      for (const ticker of list) {
-        const data = cached[ticker];
-        const bg = (idx % 2 === 0) ? rowEven : rowOdd;
+      chrome.storage.local.get(['notes', 'alerts'], (localData) => {
+        const notesObj = localData.notes || {};
+        const alertsObj = localData.alerts || {};
         
-        if (!data) {
-           html += `<tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
-             <td colspan="6" style="padding:10px; text-align:left;">Waiting for sync (${ticker})...</td>
-           </tr>`;
-        } else if (!data.success) {
-           html += `<tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
-             <td style="padding:10px; text-align:left; color:#d93025;">${ticker}</td>
-             <td colspan="4" style="padding:10px; color:#d93025; text-align:left;">Error: ${data.error}</td>
-             <td style="padding:10px; text-align:center;"><button class="screener-del-btn" data-ticker="${ticker}" style="background:none;border:none;color:#d93025;cursor:pointer;font-size:16px;" title="Delete ${ticker} from Watchlist">&#128465;</button></td>
-           </tr>`;
-        } else {
-          let pctHtml = '';
-          if (data.changePct) {
-            const color = data.changeDir === 'up' ? '#188038' : '#d93025';
-            const sign = data.changeDir === 'up' ? '&#9650;' : '&#9660;';
-            pctHtml = `<span style="color:${color}; font-size:11px; margin-left:4px;">${sign}${data.changePct}</span>`;
-          }
+        let idx = 0;
+        for (const ticker of list) {
+          const data = cached[ticker];
+          const bg = (idx % 2 === 0) ? rowEven : rowOdd;
+          
+          if (!data) {
+             html += `<tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
+               <td colspan="6" style="padding:10px; text-align:left;">Waiting for sync (${ticker})...</td>
+             </tr>`;
+          } else {
+            let pctHtml = '';
+            let flashClass = '';
+            if (data.changePct) {
+              const color = data.changeDir === 'up' ? '#188038' : '#d93025';
+              const sign = data.changeDir === 'up' ? '▲' : '▼';
+              pctHtml = `<span style="color:${color}; font-size:11px;">${sign} ${data.changePct}</span>`;
+              flashClass = data.changeDir === 'up' ? 'screener-flash-up' : 'screener-flash-down';
+            }
 
-          let flashClass = '';
-          if (data.flash && (Date.now() - (data.flashTime || 0) < 5000)) {
-            flashClass = data.flash === 'up' ? 'screener-flash-up' : 'screener-flash-down';
-          }
+            const noteTxt = notesObj[ticker] || '';
+            const hasAlert = !!(alertsObj[ticker] && (alertsObj[ticker].above || alertsObj[ticker].below));
+            
+            const spark = createSparkline(data.sparkline);
 
-          html += `
-            <tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
-              <td style="text-align:left; padding:10px; font-weight:500;">
-                <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:${linkColor}; text-decoration:none;">${ticker}</a>
-              </td>
-              <td class="${flashClass}" style="padding:10px;">${data.ratios['Current Price']||'-'}<br/>${pctHtml}</td>
-              <td style="padding:10px;">${data.ratios['Stock P/E']||'-'}</td>
-              <td style="padding:10px;">${data.ratios['Market Cap']||'-'}</td>
-              <td style="padding:10px;">${data.ratios['ROCE']||'-'}</td>
-              <td style="padding:10px; text-align:center;">
-                <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#d93025; cursor:pointer; font-size:16px; padding:4px 8px; border-radius:4px;" title="Delete ${ticker} from Watchlist">&#128465;</button>
-              </td>
-            </tr>
-          `;
+            html += `
+              <tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
+                <td style="text-align:left; padding:10px; font-weight:500;">
+                  <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:${linkColor}; text-decoration:none;">${ticker}</a>
+                  ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">✏️ ${noteTxt}</div>` : ''}
+                </td>
+                <td style="padding:10px;">${spark}</td>
+                <td class="${flashClass}" style="padding:10px;">${data.ratios['Current Price']||'-'}<br/>${pctHtml}</td>
+                <td style="padding:10px;">${data.ratios['Stock P/E']||'-'}</td>
+                <td style="padding:10px;">${data.ratios['ROCE']||'-'}</td>
+                <td style="padding:10px; text-align:center;">
+                  <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">✏️</button>
+                  <button class="screener-alert-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Set Alert">${hasAlert ? '🔔' : '🔕'}</button>
+                  <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#d93025; cursor:pointer; font-size:14px; padding:2px;" title="Delete">&#128465;</button>
+                </td>
+              </tr>
+            `;
+          }
+          idx++;
         }
-        idx++;
-      }
-      
-      html += `</tbody></table></div>`;
-      wlItemsContainer.innerHTML = html;
+        
+        html += `</tbody></table></div>`;
+        wlItemsContainer.innerHTML = html;
 
-      const delBtns = wlItemsContainer.querySelectorAll('.screener-del-btn');
-      delBtns.forEach(btn => {
-        btn.onclick = () => removeTicker(btn.getAttribute('data-ticker'));
-        btn.onmouseover = () => { btn.style.backgroundColor = '#f1f3f4'; btn.style.color = '#d93025'; };
-        btn.onmouseout = () => { btn.style.backgroundColor = 'transparent'; btn.style.color = '#5f6368'; };
+        // Wire up buttons
+        wlItemsContainer.querySelectorAll('.screener-del-btn').forEach(b => b.onclick = () => removeTicker(b.getAttribute('data-ticker')));
+        wlItemsContainer.querySelectorAll('.screener-note-btn').forEach(b => b.onclick = () => openNoteModal(b.getAttribute('data-ticker')));
+        wlItemsContainer.querySelectorAll('.screener-alert-btn').forEach(b => b.onclick = () => openAlertModal(b.getAttribute('data-ticker')));
       });
     });
   }
@@ -560,3 +632,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
+
+
+// --- Sparklines SVG Builder ---
+async function buildSparkline(ticker) {
+  try {
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.NS?range=7d&interval=1d`);
+    const data = await res.json();
+    const prices = data.chart.result[0].indicators.quote[0].close.filter(p => p !== null);
+    if (prices.length < 2) return '';
+
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const range = max - min || 1;
+    
+    const width = 60;
+    const height = 20;
+    
+    const points = prices.map((p, i) => {
+      const x = (i / (prices.length - 1)) * width;
+      const y = height - ((p - min) / range) * height;
+      return `${x},${y}`;
+    }).join(' ');
+
+    const isUp = prices[prices.length - 1] >= prices[0];
+    const color = isUp ? '#188038' : '#d93025';
+
+    return `<svg width="${width}" height="${height}" style="margin-top:4px;"><polyline fill="none" stroke="${color}" stroke-width="1.5" points="${points}"/></svg>`;
+  } catch(e) {
+    return '';
+  }
+}
