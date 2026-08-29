@@ -2,6 +2,8 @@
 
 A powerful Chrome extension that acts as a real-time mirror to your Screener.in account and Yahoo Finance, bringing financial data, stock watchlists, and market indices directly to your fingertips on any webpage you visit.
 
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/techieajju)
+
 ## Features
 
 - **Live Ticker Tape:** See real-time price updates and percentage changes for NIFTY 50, SENSEX, and your personal watchlist across the top of any webpage.
@@ -11,21 +13,29 @@ A powerful Chrome extension that acts as a real-time mirror to your Screener.in 
 - **Multiple Portfolios:** Create and manage distinct portfolios (e.g., Long Term, Swing Trades) directly from the side panel.
 - **News Feed:** Stay updated with the latest Yahoo Finance news for the top stocks in your active portfolio.
 - **Export to CSV:** Download your entire watchlist and ratios to Excel with a single click.
-- **Global Toggle & Dark Mode:** Fully supports dark mode and includes a master switch to hide the UI when you want distraction-free browsing.
+- **Dark Mode:** Fully supports dark mode for comfortable reading.
 
 ## Installation
 
-1. Download the latest screener-extension-vX.zip.
-2. Extract the .zip file to a folder on your computer.
-3. Open Google Chrome and navigate to chrome://extensions/.
+1. Download the latest release .zip or clone this repository.
+2. If downloaded as a zip, extract it to a folder on your computer.
+3. Open Google Chrome and navigate to \chrome://extensions/\.
 4. Enable **Developer mode** in the top right corner.
-5. Click **Load unpacked** and select the folder you just extracted.
+5. Click **Load unpacked** and select the \extension-code\ folder.
 6. Pin the extension to your toolbar and click it to get started!
 
 ## How It Works
 
 This extension does not rely on a costly backend server. Instead, it securely acts as a local frontend:
-- **Screener.in:** For financial ratios (P/E, ROCE, Market Cap). Note: You must be logged into Screener.in on your browser for the data to sync properly.
+- **Screener.in:** For financial ratios (P/E, ROCE, Market Cap). *Note: You must be logged into Screener.in on your browser for the data to sync properly.*
 - **Yahoo Finance:** For live stock prices, market indices (NIFTY 50), and the latest financial news.
 
-Enjoy seamlessly tracking the markets!
+## Support
+
+If you find this extension useful for your trading or investing workflow, consider buying me a coffee! It helps keep the project alive.
+
+<a href="https://buymeacoffee.com/techieajju" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
