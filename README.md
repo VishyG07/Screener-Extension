@@ -13,15 +13,6 @@ A powerful Chrome extension that acts as a real-time mirror to your Screener.in 
 - **📊 Export to CSV:** Download your entire watchlist and ratios to Excel with a single click.
 - **🌙 Dark Mode:** Fully supports dark mode for comfortable reading during late-night research.
 
-## 🛠️ Installation
-
-1. Download the latest release `.zip` or clone this repository.
-2. If downloaded as a zip, extract it to a folder on your computer.
-3. Open Google Chrome and navigate to `chrome://extensions/`.
-4. Enable **Developer mode** in the top right corner.
-5. Click **Load unpacked** and select the `extension-code` folder.
-6. Pin the extension to your toolbar and click it to get started!
-
 ## ⚙️ How It Works
 
 This extension does not rely on a costly backend server. Instead, it securely acts as a local frontend:
