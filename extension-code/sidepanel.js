@@ -426,7 +426,13 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
           const feedRes = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${ticker}.NS`);
           const feedData = await feedRes.json();
-          const newsItems = feedData.news || [];
+          const rawNews = feedData.news || [];
+          const newsItems = rawNews.filter(item => {
+            if (!item.relatedTickers) return false;
+            return item.relatedTickers.includes(ticker) || 
+                   item.relatedTickers.includes(ticker + '.NS') || 
+                   item.relatedTickers.includes(ticker + '.BO');
+          });
           
           if (newsItems.length > 0) {
             allNewsHtml += `<div style="font-size:12px; font-weight:bold; color:#188038; margin-top:12px; margin-bottom:4px; padding:0 12px;">${ticker} NEWS</div>`;
