@@ -57,7 +57,7 @@
 
   <!-- Alert Modal -->
   <div id="alert-modal" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-    <div class="screener-watchlist-card" style="width: 250px; padding: 20px; background: white;">
+    <div class="screener-watchlist-card" style="width: 250px; padding: 20px;">
       <h3 style="margin-top:0;">Set Alert for <span id="alert-ticker"></span></h3>
       <div style="margin-bottom: 12px;">
         <label style="display:block; font-size:12px; margin-bottom:4px;">Alert if price goes ABOVE (₹):</label>
@@ -68,7 +68,7 @@
         <input type="number" id="alert-below" class="screener-input" placeholder="e.g. 2500">
       </div>
       <div style="display:flex; justify-content:flex-end; gap:8px;">
-        <button id="btn-alert-cancel" class="screener-btn" style="background:#f1f3f4; color:#202124;">Cancel</button>
+        <button id="btn-alert-cancel" class="screener-btn screener-btn-secondary">Cancel</button>
         <button id="btn-alert-save" class="screener-btn">Save</button>
       </div>
     </div>
@@ -76,14 +76,15 @@
 
   <!-- Note Modal -->
   <div id="note-modal" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-    <div class="screener-watchlist-card" style="width: 250px; padding: 20px; background: white;">
+    <div class="screener-watchlist-card" style="width: 250px; padding: 20px;">
       <h3 style="margin-top:0;">Note for <span id="note-ticker"></span></h3>
       <textarea id="note-text" class="screener-input" style="height: 80px; resize:none;" placeholder="Write a trading note..."></textarea>
       <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
-        <button id="btn-note-cancel" class="screener-btn" style="background:#f1f3f4; color:#202124;">Cancel</button>
+        <button id="btn-note-cancel" class="screener-btn screener-btn-secondary">Cancel</button>
         <button id="btn-note-save" class="screener-btn">Save</button>
       </div>
     </div>
   </div>
 </body>
 </html>
+

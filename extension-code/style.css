@@ -480,3 +480,18 @@ body.dark-mode [style*="color:#188038"] { color: #81c995 !important; }
     animation: flashRed 1.5s ease-out;
     border-radius: 4px;
 }
+
+.screener-btn-secondary {
+  background-color: #f1f3f4;
+  color: #202124;
+}
+.screener-btn-secondary:hover {
+  background-color: #e8eaed;
+}
+body.dark-mode .screener-btn-secondary {
+  background-color: #303134;
+  color: #e8eaed;
+}
+body.dark-mode .screener-btn-secondary:hover {
+  background-color: #3c4043;
+}
