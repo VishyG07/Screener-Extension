@@ -270,9 +270,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
              sendResponse({ success: true });
           });
         });
+      }).catch(err => {
+        sendResponse({ success: false, error: err.message });
       });
     } else {
-      syncWatchlistData().then(() => sendResponse({ success: true }));
+      syncWatchlistData()
+        .then(() => sendResponse({ success: true }))
+        .catch(err => sendResponse({ success: false, error: err.message }));
     }
     return true;
   }

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Elements
-  const tabSearch = document.getElementById('tab-dashboard');
+  const tabSearch = document.getElementById('tab-search');
   const tabWatchlist = null;
   const tabNews = document.getElementById('tab-news');
   const viewSearch = document.getElementById('view-search');
