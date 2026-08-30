@@ -25,8 +25,6 @@
   const btnNewPortfolio = document.getElementById('btn-new-portfolio');
   const btnExportCsv = document.getElementById('btn-export-csv');
   const newsContainer = document.getElementById('news-container');
-  const actionsTickerInput = document.getElementById('actions-ticker-input');
-  const btnLoadActions = document.getElementById('btn-load-actions');
 
   let activePortfolio = 'Default';
   // Tab Switching Logic
@@ -441,7 +439,7 @@
             let flashClass = '';
             if (data.changePct) {
               const color = data.changeDir === 'up' ? '#188038' : '#d93025';
-              const sign = data.changeDir === 'up' ? 'â–²' : 'â–¼';
+              const sign = data.changeDir === 'up' ? '▲' : '▼';
               pctHtml = `<span style="color:${color}; font-size:11px;">${sign} ${data.changePct}</span>`;
               flashClass = data.changeDir === 'up' ? 'screener-flash-up' : 'screener-flash-down';
             }
@@ -455,14 +453,14 @@
               <tr style="background:${idx % 2 === 0 ? 'var(--row-even)' : 'var(--row-odd)'}; border-bottom:1px solid var(--border-color);">
                 <td style="text-align:left; padding:10px; font-weight:500;">
                   <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:var(--link-green); text-decoration:none;">${ticker}</a>
-                  ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">âœï¸ ${noteTxt}</div>` : ''}
+                  ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">📝 ${noteTxt}</div>` : ''}
                 </td>
                 <td style="padding:10px;">${spark}</td>
                 <td class="${flashClass}" style="padding:10px;">${data.ratios['Current Price']||'-'}<br/>${pctHtml}</td>
                 <td style="padding:10px;">${data.ratios['Stock P/E']||'-'}</td>
                 <td style="padding:10px;">${data.ratios['ROCE']||'-'}</td>
                 <td style="padding:10px; text-align:center;">
-                  <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">âœï¸</button>
+                  <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">📝</button>
                   <button class="screener-alert-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Set Alert">${hasAlert ? 'ðŸ””' : 'ðŸ”•'}</button>
                   <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#d93025; cursor:pointer; font-size:14px; padding:2px;" title="Delete">&#128465;</button>
                 </td>
@@ -804,6 +802,7 @@ setInterval(() => {
     });
   } catch(e) {}
 }, 10000);
+
 
 
 
