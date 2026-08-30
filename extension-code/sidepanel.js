@@ -439,7 +439,7 @@
             let flashClass = '';
             if (data.changePct) {
               const color = data.changeDir === 'up' ? '#188038' : '#d93025';
-              const sign = data.changeDir === 'up' ? '▲' : '▼';
+              const sign = data.changeDir === 'up' ? '\u25B2' : '\u25BC';
               pctHtml = `<span style="color:${color}; font-size:11px;">${sign} ${data.changePct}</span>`;
               flashClass = data.changeDir === 'up' ? 'screener-flash-up' : 'screener-flash-down';
             }
@@ -460,7 +460,7 @@
                 <td style="padding:10px;">${data.ratios['Stock P/E']||'-'}</td>
                 <td style="padding:10px;">${data.ratios['ROCE']||'-'}</td>
                 <td style="padding:10px; text-align:center;">
-                  <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">📝</button>
+                  <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">\uD83D\uDCDD</button>
                   <button class="screener-alert-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Set Alert">${hasAlert ? 'ðŸ””' : 'ðŸ”•'}</button>
                   <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#d93025; cursor:pointer; font-size:14px; padding:2px;" title="Delete">&#128465;</button>
                 </td>
