@@ -15,34 +15,26 @@
 
   <!-- Tabs -->
   <div class="screener-tabs">
-    <div id="tab-search" class="screener-tab active">Search</div>
-    <div id="tab-watchlist" class="screener-tab">Watchlist</div>
+    <div id="tab-search" class="screener-tab active">Dashboard</div>
     <div id="tab-news" class="screener-tab">News</div>
   </div>
 
-  <!-- Search View -->
+  <!-- Search View (Now Dashboard) -->
   <div id="view-search" class="screener-view active">
     <div class="screener-search-container" style="position:relative; margin-top:16px;">
-      <input type="text" id="input-search" class="screener-input" placeholder="Enter Ticker (e.g., RELIANCE)">
+      <input type="text" id="input-search" class="screener-input" placeholder="Search Ticker to Analyze or Add...">
       <button id="btn-search" class="screener-btn">Search</button>
       <div id="search-suggestions" class="screener-suggestions"></div>
     </div>
     <div id="results-search" class="screener-results"></div>
-  </div>
 
-  <!-- Watchlist View -->
-  <div id="view-watchlist" class="screener-view">
-    <div style="display:flex; justify-content:space-between; margin-bottom:12px; margin-top:16px;">
+    <h3 style="margin:24px 0 12px 0; padding-top:16px; border-top:1px solid #dadce0;" class="dashboard-section-title">Your Watchlist</h3>
+    <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
       <select id="portfolio-select" class="screener-input" style="flex:1; margin-right:12px; padding:8px 12px; border-radius:4px; border:1px solid #dadce0; cursor:pointer;">
         <option value="Default">Default Portfolio</option>
       </select>
       <button id="btn-new-portfolio" class="screener-btn" style="margin-right:16px;" title="New Portfolio">+</button>
       <button id="btn-export-csv" class="screener-btn" style="background:#188038;" title="Export to Excel">Export CSV</button>
-    </div>
-    <div class="screener-search-container" style="position:relative;">
-      <input type="text" id="input-wl-add" class="screener-input" placeholder="Add Ticker...">
-      <button id="btn-wl-add" class="screener-btn">Add</button>
-      <div id="wl-suggestions" class="screener-suggestions"></div>
     </div>
     <div id="wl-items-container" class="screener-watchlist-items"></div>
   </div>
@@ -60,7 +52,8 @@
     </a>
   </div>
 
-  <script src="utils.js"></script>`r`n  <script src="sidepanel.js"></script>
+  <script src="utils.js"></script>
+  <script src="sidepanel.js"></script>
 
   <!-- Alert Modal -->
   <div id="alert-modal" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
@@ -94,5 +87,3 @@
   </div>
 </body>
 </html>
-
-

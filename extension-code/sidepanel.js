@@ -1,20 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Elements
-  const tabSearch = document.getElementById('tab-search');
-  const tabWatchlist = document.getElementById('tab-watchlist');
+  const tabSearch = document.getElementById('tab-dashboard');
+  const tabWatchlist = null;
   const tabNews = document.getElementById('tab-news');
   const viewSearch = document.getElementById('view-search');
-  const viewWatchlist = document.getElementById('view-watchlist');
+  const viewWatchlist = null;
   const viewNews = document.getElementById('view-news');
   const btnSearch = document.getElementById('btn-search');
   const inputSearch = document.getElementById('input-search');
   const resultsSearch = document.getElementById('results-search');
   const searchSuggestions = document.getElementById('search-suggestions');
 
-  const btnWlAdd = document.getElementById('btn-wl-add');
-  const inputWlAdd = document.getElementById('input-wl-add');
+  const btnWlAdd = null;
+  const inputWlAdd = null;
   const wlItemsContainer = document.getElementById('wl-items-container');
-  const wlSuggestions = document.getElementById('wl-suggestions');
+  const wlSuggestions = null;
 
   const themeToggle = document.getElementById('theme-toggle');
   
@@ -26,18 +26,17 @@ document.addEventListener('DOMContentLoaded', () => {
   let activePortfolio = 'Default';
   // Tab Switching Logic
   function switchTab(activeTab, activeView) {
-    [tabSearch, tabWatchlist, tabNews].forEach(t => t.classList.remove('active'));
-    [viewSearch, viewWatchlist, viewNews].forEach(v => v.classList.remove('active'));
+    [tabSearch, tabNews].forEach(t => t.classList.remove('active'));
+    [viewSearch, viewNews].forEach(v => v.classList.remove('active'));
     
     activeTab.classList.add('active');
     activeView.classList.add('active');
     
-    if (activeTab === tabWatchlist) renderWatchlist();
+    if (activeTab === tabSearch) renderWatchlist();
     if (activeTab === tabNews) renderNews();
   }
 
   tabSearch.addEventListener('click', () => switchTab(tabSearch, viewSearch));
-  tabWatchlist.addEventListener('click', () => switchTab(tabWatchlist, viewWatchlist));
   tabNews.addEventListener('click', () => switchTab(tabNews, viewNews));
   // Load Settings
   chrome.storage.local.get(['theme'], (res) => {
@@ -313,24 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  btnWlAdd.addEventListener('click', () => {
-    const ticker = inputWlAdd.value.trim().toUpperCase();
-    if (!ticker) return;
-    
-    chrome.storage.local.get(['portfolios'], (res) => {
-      const ports = res.portfolios || {};
-      const list = ports[activePortfolio] || [];
-      if (!list.includes(ticker)) {
-        list.push(ticker);
-        ports[activePortfolio] = list;
-        chrome.storage.local.set({ portfolios: ports, screenerWatchlist: list }, () => {
-          inputWlAdd.value = '';
-          chrome.runtime.sendMessage({ type: 'FORCE_SYNC' });
-          renderWatchlist();
-        });
-      }
-    });
-  });
+    // btnWlAdd logic removed
 
   // --- Modals Logic ---
   const alertModal = document.getElementById('alert-modal');
@@ -604,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Listen for background updates
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'WATCHLIST_UPDATED') {
-       if (tabWatchlist.classList.contains('active')) renderWatchlist();
+       if (tabSearch.classList.contains('active')) renderWatchlist();
     }
   });
 
@@ -689,8 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
   inputSearch.addEventListener('input', (e) => handleInput(e, searchSuggestions, inputSearch, btnSearch));
   inputSearch.addEventListener('keydown', (e) => handleKeydown(e, searchSuggestions, inputSearch, btnSearch));
 
-  inputWlAdd.addEventListener('input', (e) => handleInput(e, wlSuggestions, inputWlAdd, btnWlAdd));
-  inputWlAdd.addEventListener('keydown', (e) => handleKeydown(e, wlSuggestions, inputWlAdd, btnWlAdd));
+  // WL search logic removed
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.screener-search-container')) {
