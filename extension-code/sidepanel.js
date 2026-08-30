@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+﻿document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const tabSearch = document.getElementById('tab-search');
   const tabWatchlist = null;
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <tr style="background:${idx % 2 === 0 ? 'var(--row-even)' : 'var(--row-odd)'}; border-bottom:1px solid var(--border-color);">
                 <td style="text-align:left; padding:10px; font-weight:500;">
                   <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:var(--link-green); text-decoration:none;">${ticker}</a>
-                  ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">📝 ${noteTxt}</div>` : ''}
+                  ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">ðŸ“ ${noteTxt}</div>` : ''}
                 </td>
                 <td style="padding:10px;">${spark}</td>
                 <td class="${flashClass}" style="padding:10px;">${data.ratios['Current Price']||'-'}<br/>${pctHtml}</td>
@@ -569,6 +569,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // --- Corporate Actions ---
+    function getActionType(subject) {
+    const s = subject.toLowerCase();
+    if (s.includes('dividend')) return { label: 'Dividend', color: '#188038', icon: '💰' };
+    if (s.includes('bonus')) return { label: 'Bonus', color: '#1a73e8', icon: '🎁' };
+    if (s.includes('split')) return { label: 'Split', color: '#f29900', icon: '✂️' };
+    if (s.includes('buyback')) return { label: 'Buyback', color: '#a142f4', icon: '🔄' };
+    if (s.includes('rights')) return { label: 'Rights', color: '#c5221f', icon: '📋' };
+    return { label: 'Other', color: '#5f6368', icon: '📌' };
+  }
+
   function buildActionsTable(data) {
     if (!data || data.length === 0) {
       return '<div style="padding:10px 0; color:var(--label-color); font-size:12px; font-style:italic;">No recent corporate actions found.</div>';
@@ -641,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = document.createElement('div');
         card.style.cssText = 'border:1px solid var(--border-color); border-radius:8px; margin-bottom:10px; overflow:hidden;';
         
-        const next = data[0] ? `Next: ${data[0].subject.substring(0, 35)}${data[0].subject.length > 35 ? '…' : ''} (${data[0].exDate})` : '';
+        const next = data[0] ? `Next: ${data[0].subject.substring(0, 35)}${data[0].subject.length > 35 ? 'â€¦' : ''} (${data[0].exDate})` : '';
 
         card.innerHTML = `
           <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;" class="corp-header">
@@ -649,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <span style="font-weight:600; color:var(--link-green); font-size:14px;">${ticker}</span>
               <span style="font-size:11px; color:var(--label-color); margin-left:10px;">${next}</span>
             </div>
-            <span class="corp-toggle" style="font-size:16px; color:var(--label-color); transition:transform 0.2s;">▾</span>
+            <span class="corp-toggle" style="font-size:16px; color:var(--label-color); transition:transform 0.2s;">\u25BE</span>
           </div>
           <div class="corp-body" style="padding:8px 12px; display:none;">
             ${buildActionsTable(data)}
@@ -807,6 +817,7 @@ setInterval(() => {
     });
   } catch(e) {}
 }, 10000);
+
 
 
 
