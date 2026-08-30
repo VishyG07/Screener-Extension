@@ -624,12 +624,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       return;
     }
-    debounceTimer = setTimeout(async () => {
-      try {
-        const response = await fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(query)}`);
-        if (!response.ok) return;
-        const results = await response.json();
-        if (results && results.length > 0) {
+      debounceTimer = setTimeout(async () => {
+        try {
+          const results = await new Promise(resolve => {
+            chrome.runtime.sendMessage({ type: 'SEARCH_COMPANY', query: query }, resolve);
+          });
+          if (results && results.length > 0) {
           suggestionsContainer.innerHTML = '';
           results.forEach(item => {
             const div = document.createElement('div');
