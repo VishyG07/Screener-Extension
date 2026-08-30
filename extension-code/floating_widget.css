@@ -213,3 +213,7 @@
 .screener-fw-resizer.r-tr { top: 0; right: 0; width: 12px; height: 12px; cursor: nesw-resize; z-index: 21; }
 .screener-fw-resizer.r-bl { bottom: 0; left: 0; width: 12px; height: 12px; cursor: nesw-resize; z-index: 21; }
 .screener-fw-resizer.r-br { bottom: 0; right: 0; width: 12px; height: 12px; cursor: nwse-resize; z-index: 21; }
+
+.screener-fw-s-item.active {
+  background-color: #333;
+}
