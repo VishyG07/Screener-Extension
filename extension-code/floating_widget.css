@@ -14,7 +14,6 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #e0e0e0;
   box-sizing: border-box;
-  resize: both;
   overflow: hidden;
   min-width: 400px;
   min-height: 150px;
@@ -200,3 +199,17 @@
 .screener-fw-s-item:hover {
   background-color: #333;
 }
+
+.screener-fw-resizer {
+  position: absolute;
+  z-index: 20;
+  background: transparent;
+}
+.screener-fw-resizer.r-t { top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; }
+.screener-fw-resizer.r-b { bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; }
+.screener-fw-resizer.r-l { left: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
+.screener-fw-resizer.r-r { right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
+.screener-fw-resizer.r-tl { top: 0; left: 0; width: 12px; height: 12px; cursor: nwse-resize; z-index: 21; }
+.screener-fw-resizer.r-tr { top: 0; right: 0; width: 12px; height: 12px; cursor: nesw-resize; z-index: 21; }
+.screener-fw-resizer.r-bl { bottom: 0; left: 0; width: 12px; height: 12px; cursor: nesw-resize; z-index: 21; }
+.screener-fw-resizer.r-br { bottom: 0; right: 0; width: 12px; height: 12px; cursor: nwse-resize; z-index: 21; }

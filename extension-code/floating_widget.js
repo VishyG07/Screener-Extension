@@ -8,6 +8,14 @@
   container.style.display = 'none'; // Hidden initially to avoid spamming the screen on every page. We'll show the minimized tab.
 
   container.innerHTML = `
+    <div class="screener-fw-resizer r-t"></div>
+    <div class="screener-fw-resizer r-b"></div>
+    <div class="screener-fw-resizer r-l"></div>
+    <div class="screener-fw-resizer r-r"></div>
+    <div class="screener-fw-resizer r-tl"></div>
+    <div class="screener-fw-resizer r-tr"></div>
+    <div class="screener-fw-resizer r-bl"></div>
+    <div class="screener-fw-resizer r-br"></div>
     <div id="screener-fw-header">
       <span class="screener-fw-title">Watchlist</span>
       <div class="screener-fw-controls">
@@ -65,19 +73,7 @@
     }
   });
 
-  // Track resizing
-  let resizeTimeout;
-  new ResizeObserver(() => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-      chrome.storage.local.set({
-        fwSize: {
-          width: container.offsetWidth + 'px',
-          height: container.offsetHeight + 'px'
-        }
-      });
-    }, 500);
-  }).observe(container);
+
 
   // UI elements
   const btnMin = document.getElementById('screener-fw-btn-min');
@@ -137,6 +133,83 @@
     isDragging = false;
     document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp);
+  }
+
+
+  // --- Custom Resize Logic ---
+  let isResizing = false;
+  let currentResizer = null;
+  let startX, startY, startW, startH, startTop, startLeft;
+
+  const resizers = container.querySelectorAll('.screener-fw-resizer');
+  resizers.forEach(r => {
+    r.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      currentResizer = r;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = container.getBoundingClientRect();
+      startW = rect.width;
+      startH = rect.height;
+      startTop = rect.top;
+      startLeft = rect.left;
+      
+      document.addEventListener('mousemove', onResizeMove);
+      document.addEventListener('mouseup', onResizeUp);
+      e.preventDefault();
+      e.stopPropagation();
+    });
+  });
+
+  function onResizeMove(e) {
+    if (!isResizing) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    let newW = startW;
+    let newH = startH;
+    let newT = startTop;
+    let newL = startLeft;
+
+    if (currentResizer.classList.contains('r-r') || currentResizer.classList.contains('r-tr') || currentResizer.classList.contains('r-br')) {
+      newW = startW + dx;
+    }
+    if (currentResizer.classList.contains('r-l') || currentResizer.classList.contains('r-tl') || currentResizer.classList.contains('r-bl')) {
+      newW = startW - dx;
+      newL = startLeft + dx;
+    }
+    if (currentResizer.classList.contains('r-b') || currentResizer.classList.contains('r-bl') || currentResizer.classList.contains('r-br')) {
+      newH = startH + dy;
+    }
+    if (currentResizer.classList.contains('r-t') || currentResizer.classList.contains('r-tl') || currentResizer.classList.contains('r-tr')) {
+      newH = startH - dy;
+      newT = startTop + dy;
+    }
+
+    if (newW >= 300) {
+      container.style.width = newW + 'px';
+      container.style.left = newL + 'px';
+      container.style.right = 'auto';
+    }
+    if (newH >= 150) {
+      container.style.height = newH + 'px';
+      container.style.top = newT + 'px';
+    }
+  }
+
+  function onResizeUp() {
+    isResizing = false;
+    currentResizer = null;
+    document.removeEventListener('mousemove', onResizeMove);
+    document.removeEventListener('mouseup', onResizeUp);
+    
+    // Save dimensions and position
+    chrome.storage.local.set({
+      fwSize: {
+        width: container.style.width,
+        height: container.style.height
+      }
+    });
   }
 
   // --- Render Table ---
