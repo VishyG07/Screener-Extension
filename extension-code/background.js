@@ -241,7 +241,7 @@ async function syncWatchlistData() {
     }
   }
 
-  await chrome.storage.local.set({ cachedData, marketIndices: indices, priceAlerts, lastSync: Date.now() });
+  await chrome.storage.local.set({ cachedData, marketIndices: indices || oldIndices || {}, priceAlerts, lastSync: Date.now() });
   
   // Notify tabs that data was updated so they can refresh
   chrome.runtime.sendMessage({ type: 'WATCHLIST_UPDATED' }).catch(() => {});
@@ -329,7 +329,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Fast price polling (only hits Yahoo Finance, avoids Screener rate limits)
 async function fetchFastPrices() {
-  const { screenerWatchlist = [], cachedData = {}, marketIndices = {} } = await chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices']);
+  const data = await chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices']);
+  const screenerWatchlist = data.screenerWatchlist || [];
+  const cachedData = data.cachedData || {};
+  const marketIndices = data.marketIndices || {};
   if (screenerWatchlist.length === 0 && !marketIndices['NIFTY 50']) return;
   
   let changed = false;
