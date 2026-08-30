@@ -630,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       actionsContainer.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:4px 0;">
-          <span style="font-size:12px; font-weight:600; color:var(--text-color);">Showing actions for <strong>${activeActions.length}</strong> stock${activeActions.length > 1 ? 's' : ''}</span>
+          <span style="font-size:12px; color:var(--text-color);">Found upcoming actions for <strong>${activeActions.length}</strong> of ${list.length} stocks</span>
           <span style="font-size:10px; color:var(--label-color);">Source: NSE India</span>
         </div>
         <div id="actions-list"></div>`;
