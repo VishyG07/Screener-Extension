@@ -1,4 +1,4 @@
-// floating_widget.js
+﻿// floating_widget.js
 (function() {
   if (document.getElementById('screener-fw-container')) return; // Already injected
 
@@ -275,7 +275,7 @@
           let pctHtml = '';
           if (data.changePct) {
             const color = data.changeDir === 'up' ? '#188038' : '#d93025';
-            const sign = data.changeDir === 'up' ? '▲' : '▼';
+            const sign = data.changeDir === 'up' ? 'â–²' : 'â–¼';
             pctHtml = `<div style="color:${color}; font-size:11px;">${sign} ${data.changePct}</div>`;
           }
 
@@ -299,8 +299,42 @@
     });
   }
 
-  // --- Autocomplete Logic ---
+    // --- Autocomplete Logic ---
   let debounceTimer;
+  let activeIndex = -1;
+
+  inputEl.addEventListener('keydown', (e) => {
+    const items = suggestionsEl.querySelectorAll('.screener-fw-s-item');
+    if (!items.length || suggestionsEl.style.display === 'none') return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIndex = Math.min(activeIndex + 1, items.length - 1);
+      highlightItem(items, activeIndex);
+      items[activeIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIndex = Math.max(activeIndex - 1, 0);
+      highlightItem(items, activeIndex);
+      items[activeIndex].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < items.length) {
+        items[activeIndex].click();
+      }
+    }
+  });
+
+  function highlightItem(items, index) {
+    items.forEach((item, i) => {
+      if (i === index) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
   inputEl.addEventListener('input', (e) => {
     clearTimeout(debounceTimer);
     const query = inputEl.value.trim();
@@ -312,10 +346,8 @@
     debounceTimer = setTimeout(async () => {
       let results = [];
       try {
-        // Route through background service worker (has host_permissions)
         results = await chrome.runtime.sendMessage({ type: 'SEARCH_COMPANY', query: query });
       } catch (err) {
-        // Fallback: try direct fetch
         try {
           const res = await fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(query)}`);
           if (res.ok) results = await res.json();
@@ -324,6 +356,7 @@
       
       if (results && results.length > 0) {
         suggestionsEl.innerHTML = '';
+        activeIndex = -1;
         results.forEach(item => {
           const div = document.createElement('div');
           div.className = 'screener-fw-s-item';
@@ -432,3 +465,4 @@ setInterval(() => {
     });
   } catch(e) {}
 }, 10000);
+
