@@ -188,7 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
            html += `<table style="width:100%; border-collapse:collapse; overflow:hidden; font-size:14px; font-family:Roboto,sans-serif;">`;
            let i = 0;
            for (const [k, v] of Object.entries(data.ratios)) {
-             const bg = i % 2 === 0 ? rowEven : rowOdd;
              html += `<tr style="background:var(--verdict-bg);">
                <td style="padding:12px 16px; color:var(--label-color); font-weight:500; border-bottom:1px solid var(--border-light); white-space:nowrap;">${k}</td>
                <td style="padding:12px 16px; color:var(--text-color); font-weight:600; text-align:right; border-bottom:1px solid var(--border-light);">${v}</td>
@@ -227,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                    });
                    const tableHtml = `<table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right; color:var(--text-color); white-space:nowrap;">${trs.slice(0,4).map(tr => {
                      const isHeader = tr.querySelector('th');
-                     return `<tr style="border-bottom:1px solid var(--border-color); ${isHeader ? 'font-weight:bold; background:'+rowEven : ''}">${tr.innerHTML}</tr>`;
+                     return `<tr style="border-bottom:1px solid var(--border-color); ${isHeader ? 'font-weight:bold; background:var(--row-even)' : ''}">${tr.innerHTML}</tr>`;
                    }).join('')}</table>`;
                    document.getElementById('search-peers-container').innerHTML = `<h4 style="margin:16px 0 8px 0; color:var(--text-color);">Peer Comparison</h4><div style="border:1px solid var(--border-color); border-radius:8px; overflow-x:auto;">${tableHtml}</div>`;
                  }
@@ -424,10 +423,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let idx = 0;
         for (const ticker of list) {
           const data = cached[ticker];
-          const bg = (idx % 2 === 0) ? rowEven : rowOdd;
           
           if (!data) {
-             html += `<tr style="background:var(--verdict-bg); border-bottom:1px solid var(--border-color);">
+             html += `<tr style="background:${idx % 2 === 0 ? 'var(--row-even)' : 'var(--row-odd)'}; border-bottom:1px solid var(--border-color);">
                <td colspan="6" style="padding:10px; text-align:left;">Waiting for sync (${ticker})...</td>
              </tr>`;
           } else {
@@ -446,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const spark = createSparkline(data.sparkline);
 
             html += `
-              <tr style="background:var(--verdict-bg); border-bottom:1px solid var(--border-color);">
+              <tr style="background:${idx % 2 === 0 ? 'var(--row-even)' : 'var(--row-odd)'}; border-bottom:1px solid var(--border-color);">
                 <td style="text-align:left; padding:10px; font-weight:500;">
                   <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:var(--link-green); text-decoration:none;">${ticker}</a>
                   ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">✏️ ${noteTxt}</div>` : ''}
