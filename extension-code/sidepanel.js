@@ -332,6 +332,76 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // --- Modals Logic ---
+  const alertModal = document.getElementById('alert-modal');
+  const btnAlertCancel = document.getElementById('btn-alert-cancel');
+  const btnAlertSave = document.getElementById('btn-alert-save');
+  const inputAlertAbove = document.getElementById('alert-above');
+  const inputAlertBelow = document.getElementById('alert-below');
+  let currentAlertTicker = '';
+
+  window.openAlertModal = function(ticker) {
+    currentAlertTicker = ticker;
+    document.getElementById('alert-ticker').textContent = ticker;
+    chrome.storage.local.get(['alerts'], (res) => {
+      const alerts = res.alerts || {};
+      inputAlertAbove.value = alerts[ticker]?.above || '';
+      inputAlertBelow.value = alerts[ticker]?.below || '';
+      alertModal.style.display = 'flex';
+    });
+  };
+
+  btnAlertCancel.onclick = () => alertModal.style.display = 'none';
+  btnAlertSave.onclick = () => {
+    chrome.storage.local.get(['alerts'], (res) => {
+      const alerts = res.alerts || {};
+      const above = parseFloat(inputAlertAbove.value) || null;
+      const below = parseFloat(inputAlertBelow.value) || null;
+      if (above || below) {
+        alerts[currentAlertTicker] = { above, below };
+      } else {
+        delete alerts[currentAlertTicker];
+      }
+      chrome.storage.local.set({ alerts }, () => {
+        alertModal.style.display = 'none';
+        renderWatchlist();
+      });
+    });
+  };
+
+  const noteModal = document.getElementById('note-modal');
+  const btnNoteCancel = document.getElementById('btn-note-cancel');
+  const btnNoteSave = document.getElementById('btn-note-save');
+  const inputNoteText = document.getElementById('note-text');
+  let currentNoteTicker = '';
+
+  window.openNoteModal = function(ticker) {
+    currentNoteTicker = ticker;
+    document.getElementById('note-ticker').textContent = ticker;
+    chrome.storage.local.get(['notes'], (res) => {
+      const notes = res.notes || {};
+      inputNoteText.value = notes[ticker] || '';
+      noteModal.style.display = 'flex';
+    });
+  };
+
+  btnNoteCancel.onclick = () => noteModal.style.display = 'none';
+  btnNoteSave.onclick = () => {
+    chrome.storage.local.get(['notes'], (res) => {
+      const notes = res.notes || {};
+      const txt = inputNoteText.value.trim();
+      if (txt) {
+        notes[currentNoteTicker] = txt;
+      } else {
+        delete notes[currentNoteTicker];
+      }
+      chrome.storage.local.set({ notes }, () => {
+        noteModal.style.display = 'none';
+        renderWatchlist();
+      });
+    });
+  };
+
   function createSparkline(data) {
     if (!data || data.length < 2) return '';
     const min = Math.min(...data);
