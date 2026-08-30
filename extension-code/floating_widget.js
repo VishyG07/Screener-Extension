@@ -334,3 +334,11 @@ async function buildSparkline(ticker) {
     return '';
   }
 }
+// Keep background worker alive and trigger ultra-fast price polling
+setInterval(() => {
+  try {
+    chrome.runtime.sendMessage({ type: 'PING' }, () => {
+      if (chrome.runtime.lastError) { /* ignore */ }
+    });
+  } catch(e) {}
+}, 10000);
