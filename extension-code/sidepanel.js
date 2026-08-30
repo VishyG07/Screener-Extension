@@ -616,13 +616,23 @@
 
       actionsContainer.innerHTML = '<div class="screener-loading" style="text-align:center; padding:30px;">Scanning watchlist for recent corporate actions...</div>';
 
+      const now = new Date();
+      now.setHours(0,0,0,0);
+
       const allResults = await Promise.all(list.map(ticker => {
         return new Promise(resolve => {
           chrome.runtime.sendMessage({ type: 'CORPORATE_ACTIONS', symbol: ticker }, (r) => {
             if (chrome.runtime.lastError || !r || !r.success) {
               resolve({ ticker, data: [] });
             } else {
-              resolve({ ticker, data: r.data || [] });
+              // Keep only upcoming actions
+              const upcoming = (r.data || []).filter(a => {
+                const dateStr = (a.exDate && a.exDate !== '-') ? a.exDate : a.recDate;
+                if (!dateStr || dateStr === '-') return false;
+                const d = new Date(dateStr);
+                return !isNaN(d) && d >= now;
+              });
+              resolve({ ticker, data: upcoming });
             }
           });
         });
