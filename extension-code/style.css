@@ -495,3 +495,50 @@ body.dark-mode .screener-btn-secondary {
 body.dark-mode .screener-btn-secondary:hover {
   background-color: #3c4043;
 }
+
+/* Global Theme Transitions */
+body, 
+body *,
+.screener-header,
+.screener-view,
+.screener-watchlist-card,
+.screener-input,
+.screener-btn,
+.screener-theme-btn,
+.screener-tabs,
+.screener-tab,
+.screener-ratios li {
+  transition: background-color 0.3s ease, background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+:root {
+  --bg-color: #ffffff;
+  --text-color: #202124;
+  --label-color: #5f6368;
+  --border-color: #dadce0;
+  --border-light: #e8eaed;
+  --link-color: #1a73e8;
+  --link-green: #188038;
+  --row-even: #f8f9fa;
+  --row-odd: #ffffff;
+  --header-bg: #f8f9fa;
+  --verdict-bg: #f1f3f4;
+  --verdict-border: transparent;
+  --btn-wl-bg: #188038;
+}
+
+body.dark-mode {
+  --bg-color: #202124;
+  --text-color: #e8eaed;
+  --label-color: #9aa0a6;
+  --border-color: #3c4043;
+  --border-light: #3c4043;
+  --link-color: #8ab4f8;
+  --link-green: #81c995;
+  --row-even: #303134;
+  --row-odd: #202124;
+  --header-bg: #303134;
+  --verdict-bg: #303134;
+  --verdict-border: #3c4043;
+  --btn-wl-bg: #188038;
+}

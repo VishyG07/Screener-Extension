@@ -47,15 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.toggle('dark-mode');
     const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
     chrome.storage.local.set({ theme });
-    
-    // Re-render UI to update dynamically calculated colors
-    renderWatchlist();
-    if (tabNews.classList.contains('active')) renderNews();
-    if (inputSearch.value.trim() === '') {
-      renderDefaultSearch();
-    } else {
-      btnSearch.click();
-    }
   });
 
   // --- Multi-Portfolio Logic ---
@@ -138,22 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function generateVerdict(ratios) {
     const peRaw = ratios['Stock P/E'];
     const roceRaw = ratios['ROCE'];
-    const isDark = document.body.classList.contains('dark-mode');
-    const bg = isDark ? '#303134' : '#f1f3f4';
-    const border = isDark ? '1px solid #3c4043' : 'none';
-    const labelColor = isDark ? '#9aa0a6' : '#5f6368';
+    
 
-    if (!peRaw || !roceRaw) return `<div style="background:${bg}; border:${border}; padding:12px; border-radius:8px; margin-top:12px; font-size:13px;"><span style="color:${labelColor}; font-weight:600;">AI Verdict:</span> <span style="color:#fbbc04; font-weight:500;">Not enough data to formulate a verdict.</span></div>`;
+    if (!peRaw || !roceRaw) return `<div style="background:var(--verdict-bg); border:1px solid var(--verdict-border); padding:12px; border-radius:8px; margin-top:12px; font-size:13px;"><span style="color:var(--label-color); font-weight:600;">AI Verdict:</span> <span style="color:#fbbc04; font-weight:500;">Not enough data to formulate a verdict.</span></div>`;
     
     const pe = parseFloat(peRaw.replace(/[^\d\.\-]/g, ''));
     const roce = parseFloat(roceRaw.replace(/[^\d\.\-]/g, ''));
     
     let verdict = "";
-    let sentimentColor = isDark ? '#9aa0a6' : '#5f6368';
+    let sentimentColor = 'var(--label-color)';
     
     if (pe < 15 && roce > 20) {
       verdict = "[Undervalued] Gem with highly efficient capital return.";
-      sentimentColor = isDark ? '#81c995' : '#188038';
+      sentimentColor = 'var(--link-green)';
     } else if (pe > 40 && roce > 15) {
       verdict = "[Expensive] Strong business, but trading at an expensive premium.";
       sentimentColor = '#d93025';
@@ -162,14 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
       sentimentColor = '#d93025';
     } else if (pe < 25 && roce > 15) {
       verdict = "[Solid] Great fundamentals at a reasonable price.";
-      sentimentColor = isDark ? '#81c995' : '#188038';
+      sentimentColor = 'var(--link-green)';
     } else {
       verdict = "[Average] Standard fundamentals. Monitor for growth catalysts.";
       sentimentColor = '#fbbc04';
     }
 
-    return `<div style="background:${bg}; border:${border}; padding:12px; border-radius:8px; margin-top:12px; font-size:13px;">
-      <span style="color:${labelColor}; font-weight:600;">AI Verdict:</span> <span style="color:${sentimentColor}; font-weight:500;">${verdict}</span>
+    return `<div style="background:var(--verdict-bg); border:var(--border-color); padding:12px; border-radius:8px; margin-top:12px; font-size:13px;">
+      <span style="color:var(--label-color); font-weight:600;">AI Verdict:</span> <span style="color:${sentimentColor}; font-weight:500;">${verdict}</span>
     </div>`;
   }
 
@@ -188,29 +176,22 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.storage.local.get(['cachedData'], (res) => {
         const data = (res.cachedData || {})[ticker];
         if (data && data.success) {
-           const isDark = document.body.classList.contains('dark-mode');
-           const linkColor = isDark ? '#81c995' : '#188038';
-           const labelColor = isDark ? '#9aa0a6' : '#5f6368';
-           const valueColor = isDark ? '#e8eaed' : '#202124';
-           const rowEven = isDark ? '#303134' : '#f8f9fa';
-           const rowOdd = isDark ? '#202124' : '#ffffff';
-           const borderColor = isDark ? '#3c4043' : '#e8eaed';
-           const tableBorder = isDark ? '#3c4043' : '#dadce0';
+           
 
-           let html = `<h3 style="margin:0 0 4px 0;"><a href="https://www.screener.in/company/${ticker}/" target="_blank" style="color:${linkColor}; text-decoration:none;">${data.companyName}</a></h3>`;
+           let html = `<h3 style="margin:0 0 4px 0;"><a href="https://www.screener.in/company/${ticker}/" target="_blank" style="color:var(--link-green); text-decoration:none;">${data.companyName}</a></h3>`;
            html += generateVerdict(data.ratios);
 
            // Add to Watchlist button
-           html += `<button id="btn-search-add-wl" data-ticker="${ticker}" style="margin-top:12px; width:100%; padding:10px; border-radius:8px; border:1px solid ${tableBorder}; cursor:pointer; font-weight:600; font-size:14px; background:${isDark ? '#188038' : '#188038'}; color:#fff;">+ Add to Watchlist</button>`;
+           html += `<button id="btn-search-add-wl" data-ticker="${ticker}" style="margin-top:12px; width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); cursor:pointer; font-weight:600; font-size:14px; background:var(--btn-wl-bg); color:#fff;">+ Add to Watchlist</button>`;
 
-           html += `<div style="width:100%; overflow-x:auto; margin-top:16px; border:1px solid ${tableBorder}; border-radius:8px;">`;
+           html += `<div style="width:100%; overflow-x:auto; margin-top:16px; border:1px solid var(--border-color); border-radius:8px;">`;
            html += `<table style="width:100%; border-collapse:collapse; overflow:hidden; font-size:14px; font-family:Roboto,sans-serif;">`;
            let i = 0;
            for (const [k, v] of Object.entries(data.ratios)) {
              const bg = i % 2 === 0 ? rowEven : rowOdd;
-             html += `<tr style="background:${bg};">
-               <td style="padding:12px 16px; color:${labelColor}; font-weight:500; border-bottom:1px solid ${borderColor}; white-space:nowrap;">${k}</td>
-               <td style="padding:12px 16px; color:${valueColor}; font-weight:600; text-align:right; border-bottom:1px solid ${borderColor};">${v}</td>
+             html += `<tr style="background:var(--verdict-bg);">
+               <td style="padding:12px 16px; color:var(--label-color); font-weight:500; border-bottom:1px solid var(--border-light); white-space:nowrap;">${k}</td>
+               <td style="padding:12px 16px; color:var(--text-color); font-weight:600; text-align:right; border-bottom:1px solid var(--border-light);">${v}</td>
              </tr>`;
              i++;
            }
@@ -244,11 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
                       Array.from(tr.querySelectorAll('a')).forEach(a => a.style.color = linkColor);
                       Array.from(tr.querySelectorAll('td')).forEach(td => td.style.padding = '8px');
                    });
-                   const tableHtml = `<table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right; color:${valueColor}; white-space:nowrap;">${trs.slice(0,4).map(tr => {
+                   const tableHtml = `<table style="width:100%; border-collapse:collapse; font-size:12px; text-align:right; color:var(--text-color); white-space:nowrap;">${trs.slice(0,4).map(tr => {
                      const isHeader = tr.querySelector('th');
-                     return `<tr style="border-bottom:1px solid ${tableBorder}; ${isHeader ? 'font-weight:bold; background:'+rowEven : ''}">${tr.innerHTML}</tr>`;
+                     return `<tr style="border-bottom:1px solid var(--border-color); ${isHeader ? 'font-weight:bold; background:'+rowEven : ''}">${tr.innerHTML}</tr>`;
                    }).join('')}</table>`;
-                   document.getElementById('search-peers-container').innerHTML = `<h4 style="margin:16px 0 8px 0; color:${textColor};">Peer Comparison</h4><div style="border:1px solid ${tableBorder}; border-radius:8px; overflow-x:auto;">${tableHtml}</div>`;
+                   document.getElementById('search-peers-container').innerHTML = `<h4 style="margin:16px 0 8px 0; color:var(--text-color);">Peer Comparison</h4><div style="border:1px solid var(--border-color); border-radius:8px; overflow-x:auto;">${tableHtml}</div>`;
                  }
                  
                  // Parse Announcements (Documents)
@@ -267,9 +248,9 @@ document.addEventListener('DOMContentLoaded', () => {
                            link.href = 'https://www.screener.in' + link.getAttribute('href');
                          }
                        }
-                       return `<div style="padding:8px 0; border-bottom:1px solid ${tableBorder}; font-size:12px; color:${valueColor};">${li.innerHTML}</div>`;
+                       return `<div style="padding:8px 0; border-bottom:1px solid var(--border-color); font-size:12px; color:var(--text-color);">${li.innerHTML}</div>`;
                      }).join('');
-                     document.getElementById('search-announcements-container').innerHTML = `<h4 style="margin:16px 0 8px 0; color:${textColor};">Company Announcements</h4>${annHtml}`;
+                     document.getElementById('search-announcements-container').innerHTML = `<h4 style="margin:16px 0 8px 0; color:var(--text-color);">Company Announcements</h4>${annHtml}`;
                    }
                  }
                })
@@ -420,18 +401,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      const isDark = document.body.classList.contains('dark-mode');
-      const tableBorder = isDark ? '#3c4043' : '#dadce0';
-      const headerBg = isDark ? '#303134' : '#f8f9fa';
-      const rowEven = isDark ? '#303134' : '#ffffff';
-      const rowOdd = isDark ? '#202124' : '#f8f9fa';
-      const textColor = isDark ? '#e8eaed' : '#202124';
-      const linkColor = isDark ? '#81c995' : '#1a73e8';
+      
 
-      let html = `<div style="width:100%; overflow-x:auto; border:1px solid ${tableBorder}; border-radius:8px;">
-        <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right; color:${textColor}; white-space:nowrap;">
+      let html = `<div style="width:100%; overflow-x:auto; border:1px solid var(--border-color); border-radius:8px;">
+        <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right; color:var(--text-color); white-space:nowrap;">
           <thead>
-            <tr style="background:${headerBg}; border-bottom:1px solid ${tableBorder}; font-weight:600;">
+            <tr style="background:var(--header-bg); border-bottom:1px solid var(--border-color); font-weight:600;">
               <td style="text-align:left; padding:10px;">Symbol</td>
               <td style="padding:10px; text-align:center;">7D Trend</td>
               <td style="padding:10px;">Price</td>
@@ -452,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const bg = (idx % 2 === 0) ? rowEven : rowOdd;
           
           if (!data) {
-             html += `<tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
+             html += `<tr style="background:var(--verdict-bg); border-bottom:1px solid var(--border-color);">
                <td colspan="6" style="padding:10px; text-align:left;">Waiting for sync (${ticker})...</td>
              </tr>`;
           } else {
@@ -471,9 +446,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const spark = createSparkline(data.sparkline);
 
             html += `
-              <tr style="background:${bg}; border-bottom:1px solid ${tableBorder};">
+              <tr style="background:var(--verdict-bg); border-bottom:1px solid var(--border-color);">
                 <td style="text-align:left; padding:10px; font-weight:500;">
-                  <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:${linkColor}; text-decoration:none;">${ticker}</a>
+                  <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:var(--link-green); text-decoration:none;">${ticker}</a>
                   ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">✏️ ${noteTxt}</div>` : ''}
                 </td>
                 <td style="padding:10px;">${spark}</td>
@@ -506,18 +481,14 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderDefaultSearch() {
     chrome.storage.local.get(['marketIndices'], (res) => {
       const indices = res.marketIndices || {};
-      const isDark = document.body.classList.contains('dark-mode');
-      const bg = isDark ? '#303134' : '#f1f3f4';
-      const border = isDark ? '#3c4043' : '#e8eaed';
-      const textColor = isDark ? '#e8eaed' : '#202124';
-      const labelColor = isDark ? '#9aa0a6' : '#5f6368';
+      
 
       if (Object.keys(indices).length === 0) {
-        resultsSearch.innerHTML = `<div style="color:${labelColor}; text-align:center; padding:40px 0;">Search for a stock to see quick ratios.</div>`;
+        resultsSearch.innerHTML = `<div style="color:var(--label-color); text-align:center; padding:40px 0;">Search for a stock to see quick ratios.</div>`;
         return;
       }
 
-      let html = `<div style="color:${labelColor}; text-align:center; padding-bottom:16px; font-size:13px; font-weight:500;">Market Indices</div>`;
+      let html = `<div style="color:var(--label-color); text-align:center; padding-bottom:16px; font-size:13px; font-weight:500;">Market Indices</div>`;
       html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
       
       for (const [name, data] of Object.entries(indices)) {
@@ -527,16 +498,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const flashClass = data.flash && (Date.now() - (data.flashTime || 0) < 5000) ? (data.flash === 'up' ? 'screener-flash-up' : 'screener-flash-down') : '';
 
         html += `
-          <div style="background:${bg}; border:1px solid ${border}; border-radius:8px; padding:12px; text-align:center;">
-            <div style="font-weight:600; color:${textColor}; font-size:14px; margin-bottom:8px;">${name}</div>
-            <div class="${flashClass}" style="font-weight:bold; font-size:16px; color:${textColor}; margin-bottom:4px;">&#8377; ${data.price}</div>
+          <div style="background:var(--verdict-bg); border:1px solid var(--border-color); border-radius:8px; padding:12px; text-align:center;">
+            <div style="font-weight:600; color:var(--text-color); font-size:14px; margin-bottom:8px;">${name}</div>
+            <div class="${flashClass}" style="font-weight:bold; font-size:16px; color:var(--text-color); margin-bottom:4px;">&#8377; ${data.price}</div>
             <div style="color:${changeColor}; font-size:12px; font-weight:500;">${changeSign} ${data.changePct}%</div>
           </div>
         `;
       }
       
       html += `</div>`;
-      html += `<div style="color:${labelColor}; text-align:center; padding:40px 0 20px 0; font-size:13px;">Search for a stock above to see quick ratios.</div>`;
+      html += `<div style="color:var(--label-color); text-align:center; padding:40px 0 20px 0; font-size:13px;">Search for a stock above to see quick ratios.</div>`;
       
       resultsSearch.innerHTML = html;
     });
