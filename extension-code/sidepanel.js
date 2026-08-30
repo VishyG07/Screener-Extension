@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const tabSearch = document.getElementById('tab-search');
   const tabWatchlist = null;
@@ -461,7 +461,7 @@
                 <td style="padding:10px;">${data.ratios['ROCE']||'-'}</td>
                 <td style="padding:10px; text-align:center;">
                   <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">\uD83D\uDCDD</button>
-                  <button class="screener-alert-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Set Alert">${hasAlert ? 'ðŸ””' : 'ðŸ”•'}</button>
+                  <button class="screener-alert-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Set Alert">${hasAlert ? '\uD83D\uDD14' : '\u23F0'}</button>
                   <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#d93025; cursor:pointer; font-size:14px; padding:2px;" title="Delete">&#128465;</button>
                 </td>
               </tr>
@@ -604,62 +604,67 @@
         return;
       }
 
+      actionsContainer.innerHTML = '<div class="screener-loading" style="text-align:center; padding:30px;">Scanning watchlist for recent corporate actions...</div>';
+
+      const allResults = await Promise.all(list.map(ticker => {
+        return new Promise(resolve => {
+          chrome.runtime.sendMessage({ type: 'CORPORATE_ACTIONS', symbol: ticker }, (r) => {
+            if (chrome.runtime.lastError || !r || !r.success) {
+              resolve({ ticker, data: [] });
+            } else {
+              resolve({ ticker, data: r.data || [] });
+            }
+          });
+        });
+      }));
+
+      const activeActions = allResults.filter(r => r.data.length > 0);
+
+      if (activeActions.length === 0) {
+        actionsContainer.innerHTML = `
+          <div style="text-align:center; color:var(--label-color); padding:40px 16px;">
+            No recent corporate actions found for any stocks in this watchlist.
+          </div>`;
+        return;
+      }
+
       actionsContainer.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:4px 0;">
-          <span style="font-size:12px; font-weight:600; color:var(--text-color);">Showing actions for <strong>${list.length}</strong> stock${list.length > 1 ? 's' : ''} in your watchlist</span>
+          <span style="font-size:12px; font-weight:600; color:var(--text-color);">Showing actions for <strong>${activeActions.length}</strong> stock${activeActions.length > 1 ? 's' : ''}</span>
           <span style="font-size:10px; color:var(--label-color);">Source: NSE India</span>
         </div>
         <div id="actions-list"></div>`;
 
       const actionsList = document.getElementById('actions-list');
 
-      for (const ticker of list) {
+      activeActions.forEach(({ ticker, data }) => {
         const card = document.createElement('div');
         card.style.cssText = 'border:1px solid var(--border-color); border-radius:8px; margin-bottom:10px; overflow:hidden;';
+        
+        const next = data[0] ? `Next: ${data[0].subject.substring(0, 35)}${data[0].subject.length > 35 ? '…' : ''} (${data[0].exDate})` : '';
+
         card.innerHTML = `
-          <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
-            <span style="font-weight:600; color:var(--link-green); font-size:14px;">${ticker}</span>
-            <span style="font-size:11px; color:var(--label-color);">⏳ Loading...</span>
-          </div>`;
-        actionsList.appendChild(card);
-
-        try {
-          const response = await new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({ type: 'CORPORATE_ACTIONS', symbol: ticker }, (r) => {
-              if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-              else resolve(r);
-            });
-          });
-
-          const data = (response && response.success) ? response.data : [];
-          const next = data[0]
-            ? `Next: ${data[0].subject.substring(0, 35)}${data[0].subject.length > 35 ? '…' : ''} (${data[0].exDate})`
-            : 'No recent actions';
-
-          card.innerHTML = `
-            <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;" class="corp-header">
-              <div>
-                <span style="font-weight:600; color:var(--link-green); font-size:14px;">${ticker}</span>
-                <span style="font-size:11px; color:var(--label-color); margin-left:10px;">${next}</span>
-              </div>
-              <span class="corp-toggle" style="font-size:16px; color:var(--label-color); transition:transform 0.2s;">▾</span>
+          <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;" class="corp-header">
+            <div>
+              <span style="font-weight:600; color:var(--link-green); font-size:14px;">${ticker}</span>
+              <span style="font-size:11px; color:var(--label-color); margin-left:10px;">${next}</span>
             </div>
-            <div class="corp-body" style="padding:8px 12px; display:none;">
-              ${buildActionsTable(data)}
-            </div>`;
+            <span class="corp-toggle" style="font-size:16px; color:var(--label-color); transition:transform 0.2s;">▾</span>
+          </div>
+          <div class="corp-body" style="padding:8px 12px; display:none;">
+            ${buildActionsTable(data)}
+          </div>`;
 
-          card.querySelector('.corp-header').addEventListener('click', () => {
-            const body = card.querySelector('.corp-body');
-            const arrow = card.querySelector('.corp-toggle');
-            const open = body.style.display !== 'none';
-            body.style.display = open ? 'none' : 'block';
-            arrow.style.transform = open ? '' : 'rotate(180deg)';
-          });
-
-        } catch(e) {
-          card.querySelector('span:last-child').textContent = '⚠️ Failed to load';
-        }
-      }
+        card.querySelector('.corp-header').addEventListener('click', () => {
+          const body = card.querySelector('.corp-body');
+          const arrow = card.querySelector('.corp-toggle');
+          const open = body.style.display !== 'none';
+          body.style.display = open ? 'none' : 'block';
+          arrow.style.transform = open ? '' : 'rotate(180deg)';
+        });
+        
+        actionsList.appendChild(card);
+      });
     });
   }
 
