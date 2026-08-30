@@ -48,8 +48,11 @@
   document.body.appendChild(minimizedTab);
 
   // Restore state from storage
-  chrome.storage.local.get(['fwState', ''], (res) => {
-    
+  chrome.storage.local.get(['fwState', 'fwSize'], (res) => {
+    if (res.fwSize) {
+      container.style.width = res.fwSize.width;
+      container.style.height = res.fwSize.height;
+    }
     
     if (res.fwState === 'open') {
       container.style.display = 'flex';
@@ -61,6 +64,20 @@
       minimizedTab.style.display = 'block';
     }
   });
+
+  // Track resizing
+  let resizeTimeout;
+  new ResizeObserver(() => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      chrome.storage.local.set({
+        fwSize: {
+          width: container.offsetWidth + 'px',
+          height: container.offsetHeight + 'px'
+        }
+      });
+    }, 500);
+  }).observe(container);
 
   // UI elements
   const btnMin = document.getElementById('screener-fw-btn-min');
