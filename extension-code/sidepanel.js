@@ -47,6 +47,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.toggle('dark-mode');
     const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
     chrome.storage.local.set({ theme });
+    
+    // Re-render UI to update dynamically calculated colors
+    renderWatchlist();
+    if (tabNews.classList.contains('active')) renderNews();
+    if (inputSearch.value.trim() === '') {
+      renderDefaultSearch();
+    } else {
+      btnSearch.click();
+    }
   });
 
   // --- Multi-Portfolio Logic ---
