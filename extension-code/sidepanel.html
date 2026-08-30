@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -17,6 +17,7 @@
   <div class="screener-tabs">
     <div id="tab-search" class="screener-tab active">Dashboard</div>
     <div id="tab-news" class="screener-tab">News</div>
+    <div id="tab-actions" class="screener-tab">Corp. Actions</div>
   </div>
 
   <!-- Search View (Now Dashboard) -->
@@ -42,6 +43,19 @@
   <!-- News View -->
   <div id="view-news" class="screener-view">
     <div id="news-container" style="padding-top:8px;">Loading latest news...</div>
+  </div>
+
+  <!-- Corporate Actions View -->
+  <div id="view-actions" class="screener-view">
+    <div style="display:flex; align-items:center; gap:8px; margin:12px 0;">
+      <input type="text" id="actions-ticker-input" class="screener-input" placeholder="Enter ticker (e.g. TCS, RELIANCE)..." style="flex:1;">
+      <button id="btn-load-actions" class="screener-btn">Load</button>
+    </div>
+    <div id="actions-container" style="padding-top:4px;">
+      <div style="text-align:center; color:var(--label-color); padding:40px 20px; font-size:13px;">
+        Enter a ticker symbol above and click Load to view Dividends, Bonuses, Splits and other corporate events sourced from NSE India.
+      </div>
+    </div>
   </div>
 
   <!-- Footer (Monetization) -->

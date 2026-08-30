@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Screener.in Native Scraper",
-  "version": "2.0.11",
+  "version": "2.0.12",
   "icons": {
     "16": "icon_16.png",
     "48": "icon_48.png",
@@ -18,7 +18,8 @@
   "host_permissions": [
     "*://*.screener.in/*",
     "*://*.yahoo.com/*",
-    "*://news.google.com/*"
+    "*://news.google.com/*",
+    "https://www.nseindia.com/*"
   ],
   "action": {
     "default_title": "Open Screener Watchlist"

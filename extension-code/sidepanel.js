@@ -1,11 +1,13 @@
-document.addEventListener('DOMContentLoaded', () => {
+﻿document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const tabSearch = document.getElementById('tab-search');
   const tabWatchlist = null;
   const tabNews = document.getElementById('tab-news');
+  const tabActions = document.getElementById('tab-actions');
   const viewSearch = document.getElementById('view-search');
   const viewWatchlist = null;
   const viewNews = document.getElementById('view-news');
+  const viewActions = document.getElementById('view-actions');
   const btnSearch = document.getElementById('btn-search');
   const inputSearch = document.getElementById('input-search');
   const resultsSearch = document.getElementById('results-search');
@@ -22,12 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNewPortfolio = document.getElementById('btn-new-portfolio');
   const btnExportCsv = document.getElementById('btn-export-csv');
   const newsContainer = document.getElementById('news-container');
+  const actionsContainer = document.getElementById('actions-container');
+  const actionsTickerInput = document.getElementById('actions-ticker-input');
+  const btnLoadActions = document.getElementById('btn-load-actions');
 
   let activePortfolio = 'Default';
   // Tab Switching Logic
   function switchTab(activeTab, activeView) {
-    [tabSearch, tabNews].forEach(t => t.classList.remove('active'));
-    [viewSearch, viewNews].forEach(v => v.classList.remove('active'));
+    [tabSearch, tabNews, tabActions].forEach(t => t && t.classList.remove('active'));
+    [viewSearch, viewNews, viewActions].forEach(v => v && v.classList.remove('active'));
     
     activeTab.classList.add('active');
     activeView.classList.add('active');
@@ -38,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   tabSearch.addEventListener('click', () => switchTab(tabSearch, viewSearch));
   tabNews.addEventListener('click', () => switchTab(tabNews, viewNews));
+  tabActions.addEventListener('click', () => switchTab(tabActions, viewActions));
   // Load Settings
   chrome.storage.local.get(['theme'], (res) => {
     if (res.theme === 'dark') document.body.classList.add('dark-mode');
@@ -433,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let flashClass = '';
             if (data.changePct) {
               const color = data.changeDir === 'up' ? '#188038' : '#d93025';
-              const sign = data.changeDir === 'up' ? '▲' : '▼';
+              const sign = data.changeDir === 'up' ? 'â–²' : 'â–¼';
               pctHtml = `<span style="color:${color}; font-size:11px;">${sign} ${data.changePct}</span>`;
               flashClass = data.changeDir === 'up' ? 'screener-flash-up' : 'screener-flash-down';
             }
@@ -447,15 +453,15 @@ document.addEventListener('DOMContentLoaded', () => {
               <tr style="background:${idx % 2 === 0 ? 'var(--row-even)' : 'var(--row-odd)'}; border-bottom:1px solid var(--border-color);">
                 <td style="text-align:left; padding:10px; font-weight:500;">
                   <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:var(--link-green); text-decoration:none;">${ticker}</a>
-                  ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">✏️ ${noteTxt}</div>` : ''}
+                  ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">âœï¸ ${noteTxt}</div>` : ''}
                 </td>
                 <td style="padding:10px;">${spark}</td>
                 <td class="${flashClass}" style="padding:10px;">${data.ratios['Current Price']||'-'}<br/>${pctHtml}</td>
                 <td style="padding:10px;">${data.ratios['Stock P/E']||'-'}</td>
                 <td style="padding:10px;">${data.ratios['ROCE']||'-'}</td>
                 <td style="padding:10px; text-align:center;">
-                  <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">✏️</button>
-                  <button class="screener-alert-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Set Alert">${hasAlert ? '🔔' : '🔕'}</button>
+                  <button class="screener-note-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Add Note">âœï¸</button>
+                  <button class="screener-alert-btn" data-ticker="${ticker}" style="background:none; border:none; cursor:pointer; font-size:14px; padding:2px;" title="Set Alert">${hasAlert ? 'ðŸ””' : 'ðŸ”•'}</button>
                   <button class="screener-del-btn" data-ticker="${ticker}" style="background:none; border:none; color:#d93025; cursor:pointer; font-size:14px; padding:2px;" title="Delete">&#128465;</button>
                 </td>
               </tr>
@@ -560,6 +566,75 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+
+  // --- Corporate Actions ---
+  function getActionType(subject) {
+    const s = subject.toLowerCase();
+    if (s.includes('dividend')) return { label: 'Dividend', color: '#188038', icon: '💰' };
+    if (s.includes('bonus')) return { label: 'Bonus', color: '#1a73e8', icon: '🎁' };
+    if (s.includes('split')) return { label: 'Split', color: '#f29900', icon: '✂️' };
+    if (s.includes('buyback')) return { label: 'Buyback', color: '#a142f4', icon: '🔄' };
+    if (s.includes('rights')) return { label: 'Rights', color: '#c5221f', icon: '📋' };
+    return { label: 'Other', color: '#5f6368', icon: '📌' };
+  }
+
+  async function renderCorporateActions(symbol) {
+    actionsContainer.innerHTML = `<div class="screener-loading" style="text-align:center; padding:30px;">Fetching corporate actions for <strong>${symbol}</strong>...</div>`;
+    
+    try {
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: 'CORPORATE_ACTIONS', symbol: symbol.toUpperCase() }, (res) => {
+          if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+          else resolve(res);
+        });
+      });
+
+      if (!response || !response.success || response.data.length === 0) {
+        actionsContainer.innerHTML = `<div style="text-align:center; color:var(--label-color); padding:30px;">No corporate actions found for <strong>${symbol.toUpperCase()}</strong>.</div>`;
+        return;
+      }
+
+      const rows = response.data.map(a => {
+        const { label, color, icon } = getActionType(a.subject);
+        return `<tr style="border-bottom:1px solid var(--border-color);">
+            <td style="padding:10px 12px;"><span style="display:inline-block; background:${color}22; color:${color}; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; white-space:nowrap;">${icon} ${label}</span></td>
+            <td style="padding:10px 12px; font-size:12px; color:var(--text-color); max-width:180px; white-space:normal; line-height:1.4;">${a.subject}</td>
+            <td style="padding:10px 12px; font-size:12px; color:var(--label-color); white-space:nowrap;">${a.exDate}</td>
+            <td style="padding:10px 12px; font-size:12px; color:var(--label-color); white-space:nowrap;">${a.recDate}</td>
+          </tr>`;
+      }).join('');
+
+      actionsContainer.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <h4 style="margin:0; color:var(--text-color); font-size:14px;">Corporate Actions — <span style="color:#188038;">${symbol.toUpperCase()}</span></h4>
+          <span style="font-size:11px; color:var(--label-color);">Source: NSE India</span>
+        </div>
+        <div style="overflow-x:auto; border:1px solid var(--border-color); border-radius:8px;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead><tr style="background:var(--header-bg); font-weight:600; font-size:11px; color:var(--label-color); text-transform:uppercase;">
+              <th style="padding:8px 12px; text-align:left;">Type</th>
+              <th style="padding:8px 12px; text-align:left;">Details</th>
+              <th style="padding:8px 12px; text-align:left;">Ex-Date</th>
+              <th style="padding:8px 12px; text-align:left;">Record Date</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    } catch(e) {
+      actionsContainer.innerHTML = `<div style="text-align:center; color:#d93025; padding:30px;">Failed to load corporate actions. Please try again.</div>`;
+    }
+  }
+
+  btnLoadActions.addEventListener('click', () => {
+    const sym = actionsTickerInput.value.trim();
+    if (!sym) { actionsTickerInput.focus(); return; }
+    renderCorporateActions(sym);
+  });
+
+  actionsTickerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btnLoadActions.click();
+  });
 
   // Listen for background updates
   chrome.runtime.onMessage.addListener((msg) => {
@@ -700,3 +775,4 @@ setInterval(() => {
     });
   } catch(e) {}
 }, 10000);
+
