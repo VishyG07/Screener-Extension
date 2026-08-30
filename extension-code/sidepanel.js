@@ -8,6 +8,7 @@
   const viewWatchlist = null;
   const viewNews = document.getElementById('view-news');
   const viewActions = document.getElementById('view-actions');
+  const actionsContainer = document.getElementById('actions-container');
   const btnSearch = document.getElementById('btn-search');
   const inputSearch = document.getElementById('input-search');
   const resultsSearch = document.getElementById('results-search');
@@ -24,7 +25,6 @@
   const btnNewPortfolio = document.getElementById('btn-new-portfolio');
   const btnExportCsv = document.getElementById('btn-export-csv');
   const newsContainer = document.getElementById('news-container');
-  const actionsContainer = document.getElementById('actions-container');
   const actionsTickerInput = document.getElementById('actions-ticker-input');
   const btnLoadActions = document.getElementById('btn-load-actions');
 
@@ -39,10 +39,12 @@
     
     if (activeTab === tabSearch) renderWatchlist();
     if (activeTab === tabNews) renderNews();
+    if (activeTab === tabActions) renderCorporateActions();
   }
 
   tabSearch.addEventListener('click', () => switchTab(tabSearch, viewSearch));
   tabNews.addEventListener('click', () => switchTab(tabNews, viewNews));
+  tabActions.addEventListener('click', () => switchTab(tabActions, viewActions));
   tabActions.addEventListener('click', () => switchTab(tabActions, viewActions));
   // Load Settings
   chrome.storage.local.get(['theme'], (res) => {
@@ -636,6 +638,112 @@
     if (e.key === 'Enter') btnLoadActions.click();
   });
 
+
+  // --- Corporate Actions ---
+  function getActionType(subject) {
+    const s = subject.toLowerCase();
+    if (s.includes('dividend')) return { label: 'Dividend', color: '#188038', icon: '💰' };
+    if (s.includes('bonus'))   return { label: 'Bonus',    color: '#1a73e8', icon: '🎁' };
+    if (s.includes('split'))   return { label: 'Split',    color: '#f29900', icon: '✂️' };
+    if (s.includes('buyback')) return { label: 'Buyback',  color: '#a142f4', icon: '🔄' };
+    if (s.includes('rights'))  return { label: 'Rights',   color: '#c5221f', icon: '📋' };
+    return { label: 'Other', color: '#5f6368', icon: '📌' };
+  }
+
+  function buildActionsTable(data) {
+    if (!data || data.length === 0) {
+      return '<div style="padding:10px 0; color:var(--label-color); font-size:12px; font-style:italic;">No recent corporate actions found.</div>';
+    }
+    const rows = data.map(a => {
+      const { label, color, icon } = getActionType(a.subject);
+      return `<tr style="border-bottom:1px solid var(--border-color);">
+        <td style="padding:8px 10px; white-space:nowrap;"><span style="display:inline-block; background:${color}22; color:${color}; padding:2px 7px; border-radius:10px; font-size:11px; font-weight:600;">${icon} ${label}</span></td>
+        <td style="padding:8px 10px; font-size:12px; color:var(--text-color); white-space:normal; line-height:1.4;">${a.subject}</td>
+        <td style="padding:8px 10px; font-size:12px; color:var(--label-color); white-space:nowrap;">${a.exDate}</td>
+        <td style="padding:8px 10px; font-size:12px; color:var(--label-color); white-space:nowrap;">${a.recDate}</td>
+      </tr>`;
+    }).join('');
+    return `<div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead><tr style="background:var(--header-bg); font-weight:600; font-size:11px; color:var(--label-color); text-transform:uppercase; letter-spacing:0.4px;">
+          <th style="padding:6px 10px; text-align:left;">Type</th>
+          <th style="padding:6px 10px; text-align:left;">Details</th>
+          <th style="padding:6px 10px; text-align:left;">Ex-Date</th>
+          <th style="padding:6px 10px; text-align:left;">Record Date</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  }
+
+  async function renderCorporateActions() {
+    actionsContainer.innerHTML = '<div class="screener-loading" style="text-align:center; padding:30px;">Loading corporate actions for your watchlist...</div>';
+
+    chrome.storage.local.get(['portfolios'], async (res) => {
+      const list = (res.portfolios || {})[activePortfolio] || [];
+      if (list.length === 0) {
+        actionsContainer.innerHTML = '<div style="text-align:center; color:var(--label-color); padding:40px 16px;">Your watchlist is empty. Add some stocks first!</div>';
+        return;
+      }
+
+      actionsContainer.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:4px 0;">
+          <span style="font-size:12px; font-weight:600; color:var(--text-color);">Showing actions for <strong>${list.length}</strong> stock${list.length > 1 ? 's' : ''} in your watchlist</span>
+          <span style="font-size:10px; color:var(--label-color);">Source: NSE India</span>
+        </div>
+        <div id="actions-list"></div>`;
+
+      const actionsList = document.getElementById('actions-list');
+
+      for (const ticker of list) {
+        const card = document.createElement('div');
+        card.style.cssText = 'border:1px solid var(--border-color); border-radius:8px; margin-bottom:10px; overflow:hidden;';
+        card.innerHTML = `
+          <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-weight:600; color:var(--link-green); font-size:14px;">${ticker}</span>
+            <span style="font-size:11px; color:var(--label-color);">⏳ Loading...</span>
+          </div>`;
+        actionsList.appendChild(card);
+
+        try {
+          const response = await new Promise((resolve, reject) => {
+            chrome.runtime.sendMessage({ type: 'CORPORATE_ACTIONS', symbol: ticker }, (r) => {
+              if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+              else resolve(r);
+            });
+          });
+
+          const data = (response && response.success) ? response.data : [];
+          const next = data[0]
+            ? `Next: ${data[0].subject.substring(0, 35)}${data[0].subject.length > 35 ? '…' : ''} (${data[0].exDate})`
+            : 'No recent actions';
+
+          card.innerHTML = `
+            <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;" class="corp-header">
+              <div>
+                <span style="font-weight:600; color:var(--link-green); font-size:14px;">${ticker}</span>
+                <span style="font-size:11px; color:var(--label-color); margin-left:10px;">${next}</span>
+              </div>
+              <span class="corp-toggle" style="font-size:16px; color:var(--label-color); transition:transform 0.2s;">▾</span>
+            </div>
+            <div class="corp-body" style="padding:8px 12px; display:none;">
+              ${buildActionsTable(data)}
+            </div>`;
+
+          card.querySelector('.corp-header').addEventListener('click', () => {
+            const body = card.querySelector('.corp-body');
+            const arrow = card.querySelector('.corp-toggle');
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : 'block';
+            arrow.style.transform = open ? '' : 'rotate(180deg)';
+          });
+
+        } catch(e) {
+          card.querySelector('span:last-child').textContent = '⚠️ Failed to load';
+        }
+      }
+    });
+  }
+
   // Listen for background updates
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'WATCHLIST_UPDATED') {
@@ -775,4 +883,6 @@ setInterval(() => {
     });
   } catch(e) {}
 }, 10000);
+
+
 
