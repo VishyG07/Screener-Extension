@@ -7,7 +7,7 @@
     "48": "icon_48.png",
     "128": "icon_128.png"
   },
-  "description": "All-in-One Screener Extension: New Tab Dashboard, Side Panel, and Ticker Tape.",
+  "description": "All-in-One Screener Extension – live watchlist, ticker tape, corporate action alerts. Support on BuyMeACoffee: https://buymeacoffee.com/vishy",
   "permissions": [
     "sidePanel",
     "storage",
