@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Screener.in Native Scraper",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "icons": {
     "16": "icon_16.png",
     "48": "icon_48.png",
