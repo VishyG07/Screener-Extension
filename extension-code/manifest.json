@@ -7,7 +7,7 @@
     "48": "icon_48.png",
     "128": "icon_128.png"
   },
-  "description": "Screener extension – live watchlist, ticker tape, corporate action alerts. Support: https://buymeacoffee.com/vishy",
+  "description": "Screener extension – live watchlist, ticker tape, corporate action alerts. Support: https://buymeacoffee.com/techieajju",
   "permissions": [
     "sidePanel",
     "storage",
