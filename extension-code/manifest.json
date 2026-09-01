@@ -7,7 +7,7 @@
     "48": "icon_48.png",
     "128": "icon_128.png"
   },
-  "description": "All-in-One Screener Extension – live watchlist, ticker tape, corporate action alerts. Support on BuyMeACoffee: https://buymeacoffee.com/vishy",
+  "description": "Screener extension – live watchlist, ticker tape, corporate action alerts. Support: https://buymeacoffee.com/vishy",
   "permissions": [
     "sidePanel",
     "storage",
