@@ -184,8 +184,15 @@
         if (data && data.success) {
            
 
-           let html = `<h3 style="margin:0 0 4px 0;"><a href="https://www.screener.in/company/${ticker}/" target="_blank" style="color:var(--link-green); text-decoration:none;">${data.companyName}</a></h3>`;
-           html += generateVerdict(data.ratios);
+           const companyUrl = (data.source === 'yahoo' || ticker.startsWith('^'))
+             ? `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}`
+             : `https://www.screener.in/company/${ticker}/`;
+           let html = `<h3 style="margin:0 0 4px 0;"><a href="${companyUrl}" target="_blank" style="color:var(--link-green); text-decoration:none;">${data.companyName}</a></h3>`;
+           if (data.isIndex) {
+             html += `<div style="background:var(--verdict-bg); border:var(--border-color); padding:12px; border-radius:8px; margin-top:12px; font-size:13px;"><span style="color:var(--label-color); font-weight:600;">AI Verdict:</span> <span style="color:var(--link-green); font-weight:500;">[Market Index] Key benchmark tracking market performance.</span></div>`;
+           } else {
+             html += generateVerdict(data.ratios);
+           }
 
            // Add to Watchlist button
            html += `<button id="btn-search-add-wl" data-ticker="${ticker}" style="margin-top:12px; width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); cursor:pointer; font-weight:600; font-size:14px; background:var(--btn-wl-bg); color:#fff;">+ Add to Watchlist</button>`;
@@ -452,7 +459,7 @@
             html += `
               <tr style="background:${idx % 2 === 0 ? 'var(--row-even)' : 'var(--row-odd)'}; border-bottom:1px solid var(--border-color);">
                 <td style="text-align:left; padding:10px; font-weight:500;">
-                  <a href="https://www.screener.in/company/${ticker}/" target="_blank" title="${data.companyName}" style="color:var(--link-green); text-decoration:none;">${ticker}</a>
+                  <a href="${data.source === 'yahoo' || ticker.startsWith('^') ? 'https://finance.yahoo.com/quote/' + encodeURIComponent(ticker) : 'https://www.screener.in/company/' + ticker + '/'}" target="_blank" title="${data.companyName}" style="color:var(--link-green); text-decoration:none;">${ticker}</a>
                   ${noteTxt ? `<div style="font-size:10px; color:#5f6368; font-weight:normal; max-width:100px; white-space:normal; margin-top:4px;">ðŸ“ ${noteTxt}</div>` : ''}
                 </td>
                 <td style="padding:10px;">${spark}</td>
@@ -730,8 +737,14 @@
           results.forEach(item => {
             const div = document.createElement('div');
             div.className = 'screener-suggestion-item';
-            div.textContent = item.name;
-            div.dataset.ticker = item.url.split('/')[2];
+            const itemType = item.type || 'Stock';
+            div.innerHTML = `
+              <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                <span style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px;">${item.name}</span>
+                <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:var(--verdict-bg, #f1f3f4); color:var(--text-color, #3c4043); border:1px solid var(--border-color, #dadce0); flex-shrink:0;">${itemType}</span>
+              </div>
+            `;
+            div.dataset.ticker = item.ticker || (item.url ? item.url.split('/')[2] : item.name);
             div.onclick = () => {
               inputElement.value = div.dataset.ticker;
               suggestionsContainer.style.display = 'none';

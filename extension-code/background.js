@@ -11,22 +11,101 @@ function roundStringValue(str) {
   });
 }
 
+async function fetchYahooData(symbol) {
+  try {
+    let sym = symbol;
+    let chartRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`);
+    if (!chartRes.ok && !sym.startsWith('^') && !sym.includes('.')) {
+      sym = `${symbol}.NS`;
+      chartRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`);
+    }
+    if (!chartRes.ok) throw new Error('Quote not found on Yahoo Finance');
+    const chartData = await chartRes.json();
+    const result = chartData?.chart?.result?.[0];
+    if (!result) throw new Error('Invalid quote response');
+    const meta = result.meta;
+    
+    const companyName = meta.shortName || meta.longName || symbol;
+    const isIndex = meta.instrumentType === 'INDEX' || symbol.startsWith('^');
+    const curr = meta.currency === 'INR' ? '₹' : (meta.currency === 'USD' ? '$' : (meta.currency ? meta.currency + ' ' : ''));
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose || meta.previousClose;
+    let diff = 0;
+    let pct = '0.00';
+    if (price !== undefined && prevClose !== undefined && prevClose !== 0) {
+      diff = price - prevClose;
+      pct = ((diff / prevClose) * 100).toFixed(2);
+    }
+    const changeDir = diff >= 0 ? 'up' : 'down';
+    const changePct = Math.abs(parseFloat(pct)).toFixed(2) + '%';
+    
+    const ratios = {};
+    if (price !== undefined) {
+      ratios['Current Price'] = `${curr}${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (meta.regularMarketDayLow !== undefined && meta.regularMarketDayHigh !== undefined) {
+      ratios['Day Range'] = `${curr}${meta.regularMarketDayLow.toLocaleString('en-US', { minimumFractionDigits: 2 })} - ${curr}${meta.regularMarketDayHigh.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    }
+    if (meta.fiftyTwoWeekLow !== undefined && meta.fiftyTwoWeekHigh !== undefined) {
+      ratios['52W Range'] = `${curr}${meta.fiftyTwoWeekLow.toLocaleString('en-US', { minimumFractionDigits: 2 })} - ${curr}${meta.fiftyTwoWeekHigh.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    }
+    if (meta.regularMarketVolume !== undefined && meta.regularMarketVolume > 0) {
+      ratios['Volume'] = meta.regularMarketVolume.toLocaleString('en-US');
+    }
+    if (meta.instrumentType) {
+      ratios['Type'] = meta.instrumentType;
+    }
+    if (meta.fullExchangeName || meta.exchangeName) {
+      ratios['Exchange'] = meta.fullExchangeName || meta.exchangeName;
+    }
+
+    // 7-day sparkline
+    let sparkline = [];
+    try {
+      const sparkRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=7d`);
+      if (sparkRes.ok) {
+        const sparkJson = await sparkRes.json();
+        const quotes = sparkJson?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || [];
+        sparkline = quotes.filter(p => p !== null && p !== undefined).map(p => parseFloat(p.toFixed(2)));
+      }
+    } catch(e) {}
+
+    return {
+      success: true,
+      ticker: symbol,
+      companyName,
+      ratios,
+      aboutText: isIndex ? `Market index (${meta.exchangeName || 'Market'})` : `${companyName} (${meta.fullExchangeName || meta.exchangeName || 'Global'})`,
+      changeDir,
+      changePct,
+      sparkline,
+      isIndex,
+      source: 'yahoo',
+      currency: meta.currency
+    };
+  } catch(err) {
+    return { success: false, ticker: symbol, error: err.message };
+  }
+}
+
 async function fetchScreenerData(ticker) {
+  // If ticker is an index, fetch directly from Yahoo Finance
+  if (ticker.startsWith('^')) {
+    return fetchYahooData(ticker);
+  }
+
   try {
     let response = await fetch(`https://www.screener.in/company/${ticker}/consolidated/`);
     if (!response.ok) {
       response = await fetch(`https://www.screener.in/company/${ticker}/`);
-      if (!response.ok) throw new Error('Not found');
+      if (!response.ok) throw new Error('Not found on Screener');
     }
     const htmlText = await response.text();
     
-    // We must use a simple regex or a lightweight parser because DOMParser is not available in Service Workers
     const extractName = htmlText.match(/<h1[^>]*>([^<]+)<\/h1>/);
     const companyName = extractName ? extractName[1].trim() : ticker;
 
     const ratios = {};
-    
-    // Look for top-ratios block
     const ratiosMatch = htmlText.match(/<ul id="top-ratios">([\s\S]*?)<\/ul>/);
     if (ratiosMatch) {
       const listHtml = ratiosMatch[1];
@@ -45,12 +124,11 @@ async function fetchScreenerData(ticker) {
       }
     }
 
-    // Extract daily percentage change
     const pctMatch = htmlText.match(/class="[^"]*\b(up|down)\b[^"]*">\s*<i[^>]+><\/i>\s*([-+\d\.]+%)\s*<\/span>/);
     let changeDir = '';
     let changePct = '';
     if (pctMatch) {
-      changeDir = pctMatch[1]; // 'up' or 'down'
+      changeDir = pctMatch[1];
       changePct = roundStringValue(pctMatch[2]);
     }
 
@@ -60,20 +138,21 @@ async function fetchScreenerData(ticker) {
       aboutText = aboutMatch[1].replace(/<[^>]+>/g, '').trim();
     }
 
-    // Fetch Sparkline data (last 7 days closing prices) from Yahoo Finance
     let sparkline = [];
     try {
       const yahooRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.NS?interval=1d&range=7d`);
       if (yahooRes.ok) {
         const yahooData = await yahooRes.json();
         const quotes = yahooData.chart.result[0].indicators.quote[0];
-        // filter out nulls
-        sparkline = quotes.close.filter(p => p !== null).map(p => parseFloat(p.toFixed(2)));
+        sparkline = quotes.close.filter(p => p !== null && p !== undefined).map(p => parseFloat(p.toFixed(2)));
       }
     } catch (e) {}
 
-    return { success: true, ticker, companyName, ratios, aboutText, changeDir, changePct, sparkline };
+    return { success: true, ticker, companyName, ratios, aboutText, changeDir, changePct, sparkline, source: 'screener', currency: 'INR' };
   } catch (err) {
+    // Seamless fallback to Yahoo Finance for international stocks, non-Screener tickers, or indices
+    const fallback = await fetchYahooData(ticker);
+    if (fallback.success) return fallback;
     return { success: false, ticker, error: err.message };
   }
 }
@@ -81,26 +160,39 @@ async function fetchScreenerData(ticker) {
 async function fetchIndices() {
   try {
     const indices = {};
-    const formatPrice = (num) => Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    
-    const niftyRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/^NSEI?interval=1d');
-    if (niftyRes.ok) {
-      const data = await niftyRes.json();
-      const meta = data.chart.result[0].meta;
-      indices['NIFTY 50'] = {
-        price: formatPrice(meta.regularMarketPrice),
-        changePct: Number(meta.regularMarketChangePercent).toFixed(2)
-      };
-    }
-    const sensexRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/^BSESN?interval=1d');
-    if (sensexRes.ok) {
-      const data = await sensexRes.json();
-      const meta = data.chart.result[0].meta;
-      indices['SENSEX'] = {
-        price: formatPrice(meta.regularMarketPrice),
-        changePct: Number(meta.regularMarketChangePercent).toFixed(2)
-      };
-    }
+    const formatPrice = (num, curr) => {
+      const prefix = curr === 'USD' ? '$' : '₹';
+      return prefix + Number(num).toLocaleString(curr === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const indexConfigs = [
+      { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
+      { key: 'SENSEX', symbol: '^BSESN', curr: 'INR' },
+      { key: 'BANK NIFTY', symbol: '^NSEBANK', curr: 'INR' },
+      { key: 'S&P 500', symbol: '^GSPC', curr: 'USD' }
+    ];
+
+    await Promise.all(indexConfigs.map(async (cfg) => {
+      try {
+        const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${cfg.symbol}?interval=1d&range=1d`);
+        if (res.ok) {
+          const data = await res.json();
+          const meta = data.chart.result[0].meta;
+          const price = meta.regularMarketPrice;
+          const prev = meta.chartPreviousClose || meta.previousClose;
+          const diff = prev ? price - prev : 0;
+          const pct = prev ? ((diff / prev) * 100).toFixed(2) : '0.00';
+          indices[cfg.key] = {
+            symbol: cfg.symbol,
+            price: formatPrice(price, cfg.curr),
+            rawPrice: price,
+            changePct: Math.abs(parseFloat(pct)).toFixed(2) + '%',
+            changeDir: diff >= 0 ? 'up' : 'down'
+          };
+        }
+      } catch(e) {}
+    }));
+
     return indices;
   } catch (err) {
     console.error('Error fetching indices', err);
@@ -282,10 +374,60 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'SEARCH_COMPANY') {
-    fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(message.query)}`)
-      .then(res => res.ok ? res.json() : [])
-      .then(results => sendResponse(results))
-      .catch(() => sendResponse([]));
+    const query = message.query;
+    (async () => {
+      const [screenerRes, yahooRes] = await Promise.allSettled([
+        fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(query)}`).then(r => r.ok ? r.json() : []),
+        fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=7&newsCount=0`).then(r => r.ok ? r.json() : { quotes: [] })
+      ]);
+
+      const results = [];
+      const seenTickers = new Set();
+
+      const screenerList = screenerRes.status === 'fulfilled' ? screenerRes.value : [];
+      if (Array.isArray(screenerList)) {
+        for (const item of screenerList) {
+          const parts = (item.url || '').split('/');
+          const ticker = parts[2] || '';
+          if (ticker && !seenTickers.has(ticker.toUpperCase())) {
+            seenTickers.add(ticker.toUpperCase());
+            results.push({
+              name: item.name,
+              ticker: ticker,
+              type: 'Indian Stock',
+              url: item.url || (`/company/${ticker}/`),
+              source: 'screener'
+            });
+          }
+        }
+      }
+
+      const yahooData = yahooRes.status === 'fulfilled' ? yahooRes.value : {};
+      const yahooQuotes = yahooData.quotes || [];
+      for (const q of yahooQuotes) {
+        if (!q.symbol) continue;
+        const sym = q.symbol.toUpperCase();
+        const cleanSym = sym.replace('.NS', '').replace('.BO', '');
+        if (seenTickers.has(sym) || seenTickers.has(cleanSym)) continue;
+
+        let type = 'Stock';
+        if (q.quoteType === 'INDEX' || sym.startsWith('^')) type = 'Index';
+        else if (q.quoteType === 'ETF') type = 'ETF';
+        else if (q.exchange) type = `${q.exchange} Stock`;
+
+        const displayName = q.shortname || q.longname || q.symbol;
+        seenTickers.add(sym);
+        results.push({
+          name: `${displayName} (${q.symbol})`,
+          ticker: q.symbol,
+          type: type,
+          url: `/company/${q.symbol}/`,
+          source: 'yahoo'
+        });
+      }
+
+      sendResponse(results);
+    })().catch(() => sendResponse([]));
     return true;
   }
 
@@ -363,93 +505,91 @@ async function fetchFastPrices() {
   const cachedData = data.cachedData || {};
   const marketIndices = data.marketIndices || {};
   
-  // Always include indices
-  const symbolsToFetch = ['^NSEI', '^BSESN'];
-  screenerWatchlist.forEach(t => symbolsToFetch.push(t + '.NS'));
+  // Indices to fetch
+  const symbolsToFetch = ['^NSEI', '^BSESN', '^NSEBANK', '^GSPC'];
+
+  for (const t of screenerWatchlist) {
+    if (t.startsWith('^') || t.includes('.')) {
+      symbolsToFetch.push(t);
+    } else {
+      const cached = cachedData[t];
+      if (cached && cached.currency && cached.currency !== 'INR') {
+        symbolsToFetch.push(t);
+      } else {
+        symbolsToFetch.push(t + '.NS');
+      }
+    }
+  }
   
   let changed = false;
   
   try {
-    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${symbolsToFetch.join(',')}&interval=1m&range=1d`);
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${encodeURIComponent(symbolsToFetch.join(','))}&interval=1m&range=1d`);
     if (res.ok) {
       const sparkData = await res.json();
       
-      // Process NIFTY 50
-      if (sparkData['^NSEI']) {
-        const d = sparkData['^NSEI'];
-        const prices = d.close || [];
-        // Find last non-null price
-        let price = null;
-        for (let i = prices.length - 1; i >= 0; i--) {
+      // Process standard indices
+      const indexKeys = [
+        { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
+        { key: 'SENSEX', symbol: '^BSESN', curr: 'INR' },
+        { key: 'BANK NIFTY', symbol: '^NSEBANK', curr: 'INR' },
+        { key: 'S&P 500', symbol: '^GSPC', curr: 'USD' }
+      ];
+
+      for (const idx of indexKeys) {
+        const d = sparkData[idx.symbol];
+        if (d) {
+          const prices = d.close || [];
+          let price = null;
+          for (let i = prices.length - 1; i >= 0; i--) {
             if (prices[i] !== null && prices[i] !== undefined) { price = prices[i]; break; }
-        }
-        if (price !== null) {
+          }
+          if (price !== null) {
             const prev = d.previousClose;
-            const diff = price - prev;
-            const pct = ((diff/prev)*100).toFixed(2);
-            if (marketIndices['NIFTY 50']?.price !== price.toLocaleString('en-IN')) {
-              marketIndices['NIFTY 50'] = {
-                price: price.toLocaleString('en-IN'),
+            const diff = prev ? price - prev : 0;
+            const pct = prev ? ((diff / prev) * 100).toFixed(2) : '0.00';
+            const prefix = idx.curr === 'USD' ? '$' : '₹';
+            const formatted = prefix + price.toLocaleString(idx.curr === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (marketIndices[idx.key]?.price !== formatted) {
+              marketIndices[idx.key] = {
+                symbol: idx.symbol,
+                price: formatted,
                 changeDir: diff >= 0 ? 'up' : 'down',
-                changePct: Math.abs(pct) + '%'
+                changePct: Math.abs(parseFloat(pct)).toFixed(2) + '%'
               };
               changed = true;
             }
-        }
-      }
-      
-      // Process SENSEX
-      if (sparkData['^BSESN']) {
-        const d = sparkData['^BSESN'];
-        const prices = d.close || [];
-        let price = null;
-        for (let i = prices.length - 1; i >= 0; i--) {
-            if (prices[i] !== null && prices[i] !== undefined) { price = prices[i]; break; }
-        }
-        if (price !== null) {
-            const prev = d.previousClose;
-            const diff = price - prev;
-            const pct = ((diff/prev)*100).toFixed(2);
-            if (marketIndices['SENSEX']?.price !== price.toLocaleString('en-IN')) {
-              marketIndices['SENSEX'] = {
-                price: price.toLocaleString('en-IN'),
-                changeDir: diff >= 0 ? 'up' : 'down',
-                changePct: Math.abs(pct) + '%'
-              };
-              changed = true;
-            }
+          }
         }
       }
       
       // Process Watchlist
       for (const ticker of screenerWatchlist) {
-        const key = ticker + '.NS';
-        if (sparkData[key]) {
-          const d = sparkData[key];
+        const nsKey = ticker + '.NS';
+        const d = sparkData[ticker] || sparkData[nsKey];
+        if (d) {
           const prices = d.close || [];
           let price = null;
           for (let i = prices.length - 1; i >= 0; i--) {
-              if (prices[i] !== null && prices[i] !== undefined) { price = prices[i]; break; }
+            if (prices[i] !== null && prices[i] !== undefined) { price = prices[i]; break; }
           }
           if (price !== null) {
-              const prev = d.previousClose;
-              const diff = price - prev;
-              const pct = ((diff/prev)*100).toFixed(2);
-              
-              if (!cachedData[ticker]) cachedData[ticker] = { ratios: {} };
-              if (!cachedData[ticker].ratios) cachedData[ticker].ratios = {};
-              
-              const currentStr = cachedData[ticker].ratios['Current Price'];
-              if (currentStr !== '₹ ' + price.toFixed(2)) {
-                cachedData[ticker].ratios['Current Price'] = '₹ ' + price.toFixed(2);
-                cachedData[ticker].changePct = Math.abs(pct) + '%';
-                cachedData[ticker].changeDir = diff >= 0 ? 'up' : 'down';
-                changed = true;
-              }
-              
-              // Only update sparkline occasionally to save storage space? 
-              // The spark endpoint gives us 1m granularity, which is too dense for the sparkline (390 points).
-              // We'll leave the sparkline fetching to the 10-minute syncWatchlistData interval or just skip it here.
+            const prev = d.previousClose;
+            const diff = prev ? price - prev : 0;
+            const pct = prev ? ((diff / prev) * 100).toFixed(2) : '0.00';
+            
+            if (!cachedData[ticker]) cachedData[ticker] = { ratios: {} };
+            if (!cachedData[ticker].ratios) cachedData[ticker].ratios = {};
+            
+            const curr = cachedData[ticker]?.currency === 'USD' ? '$' : (cachedData[ticker]?.currency === 'INR' ? '₹' : (cachedData[ticker]?.isIndex ? '' : '₹'));
+            const currentStr = cachedData[ticker].ratios['Current Price'];
+            const formattedPrice = `${curr}${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            if (currentStr !== formattedPrice) {
+              cachedData[ticker].ratios['Current Price'] = formattedPrice;
+              cachedData[ticker].changePct = Math.abs(parseFloat(pct)).toFixed(2) + '%';
+              cachedData[ticker].changeDir = diff >= 0 ? 'up' : 'down';
+              changed = true;
+            }
           }
         }
       }
@@ -458,7 +598,6 @@ async function fetchFastPrices() {
   
   if (changed) {
     await chrome.storage.local.set({ cachedData, marketIndices });
-    // Notify all UI contexts
     chrome.runtime.sendMessage({ type: 'WATCHLIST_UPDATED' }).catch(() => {});
   }
 }

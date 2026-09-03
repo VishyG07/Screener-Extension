@@ -275,19 +275,25 @@
           let pctHtml = '';
           if (data.changePct) {
             const color = data.changeDir === 'up' ? '#188038' : '#d93025';
-            const sign = data.changeDir === 'up' ? 'â–²' : 'â–¼';
+            const sign = data.changeDir === 'up' ? '\u25B2' : '\u25BC';
             pctHtml = `<div style="color:${color}; font-size:11px;">${sign} ${data.changePct}</div>`;
           }
 
           const sparklineHtml = createSparkline(data.sparkline);
           
+          const companyUrl = (data.source === 'yahoo' || ticker.startsWith('^'))
+            ? `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}`
+            : `https://www.screener.in/company/${ticker}/`;
+          const displayPe = data.ratios['Stock P/E'] || data.ratios['Day Range'] || '-';
+          const displayRoce = data.ratios['ROCE'] || (data.isIndex ? 'Index' : (data.ratios['52W Range'] || '-'));
+          
           tr.innerHTML = `
-            <td><a href="https://www.screener.in/company/${ticker}/" target="_blank">${data.companyName}</a></td>
+            <td><a href="${companyUrl}" target="_blank">${data.companyName}</a></td>
             <td>${sparklineHtml}</td>
             <td>${price} ${pctHtml}</td>
-            <td>${pe}</td>
+            <td>${displayPe}</td>
             <td>${mcap}</td>
-            <td>${roce}</td>
+            <td>${displayRoce}</td>
             <td><button class="screener-fw-del" data-ticker="${ticker}" title="Delete">&#128465;</button></td>
           `;
         }
@@ -360,10 +366,15 @@
         results.forEach(item => {
           const div = document.createElement('div');
           div.className = 'screener-fw-s-item';
-          div.textContent = item.name;
+          const itemType = item.type || 'Stock';
+          div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <span style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:6px;">${item.name}</span>
+              <span style="font-size:9px; padding:1px 4px; border-radius:3px; background:#f1f3f4; color:#3c4043; border:1px solid #dadce0; flex-shrink:0;">${itemType}</span>
+            </div>
+          `;
           div.onclick = () => {
-            const parts = item.url.split('/');
-            const ticker = parts[2];
+            const ticker = item.ticker || (item.url ? item.url.split('/')[2] : item.name);
             inputEl.value = '';
             suggestionsEl.style.display = 'none';
             
@@ -376,7 +387,7 @@
                 list.push(ticker);
                 portfolios['Default'] = list;
                 chrome.storage.local.set({ screenerWatchlist: list, portfolios: portfolios }, () => {
-                  chrome.runtime.sendMessage({ type: 'FORCE_SYNC' });
+                  chrome.runtime.sendMessage({ type: 'FORCE_SYNC', ticker });
                   renderTable();
                 });
               }

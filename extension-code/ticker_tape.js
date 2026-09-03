@@ -42,41 +42,24 @@
       marquee.innerHTML = '';
       let html = '';
       
-      // Add Indices First
-      if (indices['SENSEX']) {
-        const idx = indices['SENSEX'];
-        const isUp = parseFloat(idx.changePct) >= 0;
+      // Add All Configured Indices (Nifty 50, Sensex, Bank Nifty, S&P 500)
+      for (const [idxName, idx] of Object.entries(indices)) {
+        if (!idx || !idx.price) continue;
+        const isUp = idx.changeDir === 'up' || parseFloat(idx.changePct) >= 0;
         const color = isUp ? '#81c995' : '#f28b82';
-        const sign = isUp ? '▲' : '▼';
+        const sign = isUp ? '\u25B2' : '\u25BC';
         
         let flashClass = '';
         if (idx.flash && (Date.now() - (idx.flashTime || 0) < 5000)) {
            flashClass = idx.flash === 'up' ? 'screener-tape-flash-up' : 'screener-tape-flash-down';
         }
 
-        html += `
-          <div class="screener-ticker-item" style="color: #ff9800;">
-            <span class="screener-ticker-name">SENSEX</span>
-            <span class="screener-ticker-price ${flashClass}" style="color: #ff9800;">₹${idx.price}</span>
-            <span style="color: ${color}; font-size: 12px; margin-left: 6px;">${sign} ${Math.abs(parseFloat(idx.changePct)).toFixed(2)}%</span>
-          </div>
-        `;
-      }
-      if (indices['NIFTY 50']) {
-        const idx = indices['NIFTY 50'];
-        const isUp = parseFloat(idx.changePct) >= 0;
-        const color = isUp ? '#81c995' : '#f28b82';
-        const sign = isUp ? '▲' : '▼';
-        
-        let flashClass = '';
-        if (idx.flash && (Date.now() - (idx.flashTime || 0) < 5000)) {
-           flashClass = idx.flash === 'up' ? 'screener-tape-flash-up' : 'screener-tape-flash-down';
-        }
+        const formattedPrice = (idx.price.startsWith('\u20B9') || idx.price.startsWith('$')) ? idx.price : `\u20B9${idx.price}`;
 
         html += `
           <div class="screener-ticker-item" style="color: #ff9800;">
-            <span class="screener-ticker-name">NIFTY 50</span>
-            <span class="screener-ticker-price ${flashClass}" style="color: #ff9800;">₹${idx.price}</span>
+            <span class="screener-ticker-name">${idxName}</span>
+            <span class="screener-ticker-price ${flashClass}" style="color: #ff9800;">${formattedPrice}</span>
             <span style="color: ${color}; font-size: 12px; margin-left: 6px;">${sign} ${Math.abs(parseFloat(idx.changePct)).toFixed(2)}%</span>
           </div>
         `;
