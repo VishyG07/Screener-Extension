@@ -1,4 +1,4 @@
-﻿document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   // Elements
   const tabSearch = document.getElementById('tab-search');
   const tabWatchlist = null;
@@ -508,11 +508,17 @@
         const changeSign = changeVal > 0 ? '&#9650;' : (changeVal < 0 ? '&#9660;' : '');
         const flashClass = data.flash && (Date.now() - (data.flashTime || 0) < 5000) ? (data.flash === 'up' ? 'screener-flash-up' : 'screener-flash-down') : '';
 
+        // Clean currency symbol and percent sign
+        const rawPrice = String(data.price || '').replace(/^[₹$]\s*/, '').trim();
+        const currencySymbol = (name === 'S&P 500' || name.includes('US') || data.curr === 'USD') ? '$' : '₹';
+        const displayPrice = `${currencySymbol} ${rawPrice}`;
+        const displayPct = Math.abs(changeVal).toFixed(2) + '%';
+
         html += `
           <div style="background:var(--verdict-bg); border:1px solid var(--border-color); border-radius:8px; padding:12px; text-align:center;">
             <div style="font-weight:600; color:var(--text-color); font-size:14px; margin-bottom:8px;">${name}</div>
-            <div class="${flashClass}" style="font-weight:bold; font-size:16px; color:var(--text-color); margin-bottom:4px;">&#8377; ${data.price}</div>
-            <div style="color:${changeColor}; font-size:12px; font-weight:500;">${changeSign} ${data.changePct}%</div>
+            <div class="${flashClass}" style="font-weight:bold; font-size:16px; color:var(--text-color); margin-bottom:4px;">${displayPrice}</div>
+            <div style="color:${changeColor}; font-size:12px; font-weight:500;">${changeSign} ${displayPct}</div>
           </div>
         `;
       }
