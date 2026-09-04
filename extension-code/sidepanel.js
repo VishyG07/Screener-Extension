@@ -79,13 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Tape Speed Control Popover (0.5x to 3.0x with 0.1 intervals)
-  const tapeSpeedBtn = document.getElementById('tape-speed-btn');
-  const speedPopover = document.getElementById('speed-popover');
-  const speedSlider = document.getElementById('speed-slider');
-  const speedDisplayVal = document.getElementById('speed-display-val');
-  const btnSpeedMinus = document.getElementById('btn-speed-minus');
-  const btnSpeedPlus = document.getElementById('btn-speed-plus');
+  // --- Tape Speed Control Chip (Compact Format + Direct Typing & Preset Cycling) ---
+  const tapeSpeedChip = document.getElementById('tape-speed-chip');
+  const tapeSpeedInput = document.getElementById('tape-speed-input');
+  const tapeSpeedUnit = document.getElementById('tape-speed-unit');
+
+  let currentSpeedMultiplier = 1.0;
+  const speedPresets = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0];
 
   function setSpeedMultiplier(mult, save = true) {
     let m = parseFloat(mult);
@@ -94,13 +94,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (m < 0.5) m = 0.5;
     if (m > 3.0) m = 3.0;
 
-    const formatted = m.toFixed(1) + 'x';
-    if (tapeSpeedBtn) {
-      tapeSpeedBtn.textContent = formatted;
-      tapeSpeedBtn.title = `Tape Speed: ${formatted} (Click to adjust 0.5x – 3.0x)`;
+    currentSpeedMultiplier = m;
+    const formatted = m.toFixed(1);
+
+    if (tapeSpeedInput && document.activeElement !== tapeSpeedInput) {
+      tapeSpeedInput.value = formatted;
     }
-    if (speedDisplayVal) speedDisplayVal.textContent = formatted;
-    if (speedSlider) speedSlider.value = m.toString();
+    if (tapeSpeedChip) {
+      tapeSpeedChip.title = `Tape Speed: ${formatted}x (Click to cycle presets, or type any speed 0.5 – 3.0)`;
+    }
 
     if (save) {
       chrome.storage.local.set({ tapeSpeedMultiplier: m, tapeSpeed: m * 0.8 });
@@ -125,40 +127,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Toggle speed popover
-  if (tapeSpeedBtn && speedPopover) {
-    tapeSpeedBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const isOpen = speedPopover.style.display !== 'none';
-      speedPopover.style.display = isOpen ? 'none' : 'block';
+  function cycleSpeed() {
+    let cur = currentSpeedMultiplier;
+    let idx = speedPresets.findIndex(p => Math.abs(p - cur) < 0.05);
+    let next;
+    if (idx === -1) {
+      next = speedPresets.find(p => p > cur) || speedPresets[0];
+    } else {
+      next = speedPresets[(idx + 1) % speedPresets.length];
+    }
+    setSpeedMultiplier(next, true);
+    if (tapeSpeedInput) tapeSpeedInput.value = next.toFixed(1);
+  }
+
+  if (tapeSpeedInput) {
+    // Select text on focus for effortless 1-click typing
+    tapeSpeedInput.addEventListener('focus', () => {
+      tapeSpeedInput.select();
     });
 
-    document.addEventListener('click', (e) => {
-      if (speedPopover && !speedPopover.contains(e.target) && e.target !== tapeSpeedBtn) {
-        speedPopover.style.display = 'none';
+    tapeSpeedInput.addEventListener('input', () => {
+      let raw = parseFloat(tapeSpeedInput.value);
+      if (!isNaN(raw) && raw >= 0.5 && raw <= 3.0) {
+        setSpeedMultiplier(raw, true);
+      }
+    });
+
+    function commitInput() {
+      let raw = parseFloat(tapeSpeedInput.value);
+      if (isNaN(raw)) raw = currentSpeedMultiplier;
+      setSpeedMultiplier(raw, true);
+      tapeSpeedInput.value = currentSpeedMultiplier.toFixed(1);
+    }
+
+    tapeSpeedInput.addEventListener('blur', commitInput);
+
+    tapeSpeedInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        commitInput();
+        tapeSpeedInput.blur();
+      } else if (e.key === 'Escape') {
+        tapeSpeedInput.value = currentSpeedMultiplier.toFixed(1);
+        tapeSpeedInput.blur();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSpeedMultiplier(currentSpeedMultiplier + 0.1, true);
+        tapeSpeedInput.value = currentSpeedMultiplier.toFixed(1);
+        tapeSpeedInput.select();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSpeedMultiplier(currentSpeedMultiplier - 0.1, true);
+        tapeSpeedInput.value = currentSpeedMultiplier.toFixed(1);
+        tapeSpeedInput.select();
       }
     });
   }
 
-  if (speedSlider) {
-    speedSlider.addEventListener('input', (e) => {
-      setSpeedMultiplier(e.target.value);
+  // Click on x or chip background to cycle presets
+  if (tapeSpeedUnit) {
+    tapeSpeedUnit.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cycleSpeed();
     });
   }
 
-  if (btnSpeedMinus) {
-    btnSpeedMinus.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const cur = parseFloat(speedSlider ? speedSlider.value : 1.0);
-      setSpeedMultiplier(cur - 0.1);
+  if (tapeSpeedChip) {
+    tapeSpeedChip.addEventListener('click', (e) => {
+      if (e.target !== tapeSpeedInput) {
+        cycleSpeed();
+      }
     });
-  }
 
-  if (btnSpeedPlus) {
-    btnSpeedPlus.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const cur = parseFloat(speedSlider ? speedSlider.value : 1.0);
-      setSpeedMultiplier(cur + 0.1);
+    // Mouse wheel support over chip to step up/down by 0.1x
+    tapeSpeedChip.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      setSpeedMultiplier(currentSpeedMultiplier + delta, true);
+      if (tapeSpeedInput) tapeSpeedInput.value = currentSpeedMultiplier.toFixed(1);
+    }, { passive: false });
+
+    // Right-click prompt option
+    tapeSpeedChip.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const inputVal = prompt('Enter tape speed (0.5 to 3.0):', currentSpeedMultiplier.toFixed(1));
+      if (inputVal !== null && inputVal.trim() !== '') {
+        const val = parseFloat(inputVal);
+        if (!isNaN(val)) {
+          setSpeedMultiplier(val, true);
+          if (tapeSpeedInput) tapeSpeedInput.value = currentSpeedMultiplier.toFixed(1);
+        }
+      }
     });
   }
 
@@ -1159,6 +1217,7 @@ setInterval(() => {
     });
   } catch(e) {}
 }, 1000);
+
 
 
 
