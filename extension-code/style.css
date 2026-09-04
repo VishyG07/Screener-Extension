@@ -647,3 +647,47 @@ body.dark-mode {
   display: inline-block;
   animation: pulseLive 1.5s infinite;
 }
+
+/* Speed Popover */
+#speed-popover {
+  background-color: #ffffff;
+  border: 1px solid #dadce0;
+  color: #202124;
+}
+#speed-display-val {
+  color: #188038;
+}
+#speed-popover input[type="range"] {
+  accent-color: #188038;
+}
+#btn-speed-minus, #btn-speed-plus {
+  border: 1px solid #dadce0;
+  background-color: #f1f3f4;
+  color: #3c4043;
+}
+#btn-speed-minus:hover, #btn-speed-plus:hover {
+  background-color: #e8eaed;
+  color: #202124;
+}
+
+body.dark-mode #speed-popover {
+  background-color: #353a45 !important;
+  border-color: #484f5f !important;
+  color: #f0f2f5 !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45) !important;
+}
+body.dark-mode #speed-display-val {
+  color: #85d996 !important;
+}
+body.dark-mode #speed-popover input[type="range"] {
+  accent-color: #85d996;
+}
+body.dark-mode #btn-speed-minus, body.dark-mode #btn-speed-plus {
+  border-color: #484f5f !important;
+  background-color: #2d3139 !important;
+  color: #f0f2f5 !important;
+}
+body.dark-mode #btn-speed-minus:hover, body.dark-mode #btn-speed-plus:hover {
+  background-color: #414856 !important;
+  border-color: #5a6375 !important;
+}

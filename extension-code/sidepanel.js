@@ -80,41 +80,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Tape Speed Control Chip
+  // Tape Speed Control Popover (0.5x to 3.0x with 0.1 intervals)
   const tapeSpeedBtn = document.getElementById('tape-speed-btn');
-  const speedsList = [
-    { label: '0.5x', value: 0.4 },
-    { label: '1x', value: 0.8 },
-    { label: '1.5x', value: 1.2 },
-    { label: '2x', value: 1.6 }
-  ];
+  const speedPopover = document.getElementById('speed-popover');
+  const speedSlider = document.getElementById('speed-slider');
+  const speedDisplayVal = document.getElementById('speed-display-val');
+  const btnSpeedMinus = document.getElementById('btn-speed-minus');
+  const btnSpeedPlus = document.getElementById('btn-speed-plus');
 
-  function updateSpeedUI(val) {
-    if (!tapeSpeedBtn) return;
-    const found = speedsList.find(s => Math.abs(s.value - val) < 0.05);
-    const label = found ? found.label : '1x';
-    tapeSpeedBtn.textContent = label;
-    tapeSpeedBtn.title = `Tape Speed: ${label} (Click to change)`;
+  function setSpeedMultiplier(mult, save = true) {
+    let m = parseFloat(mult);
+    if (isNaN(m)) m = 1.0;
+    m = Math.round(m * 10) / 10;
+    if (m < 0.5) m = 0.5;
+    if (m > 3.0) m = 3.0;
+
+    const formatted = m.toFixed(1) + 'x';
+    if (tapeSpeedBtn) {
+      tapeSpeedBtn.textContent = formatted;
+      tapeSpeedBtn.title = `Tape Speed: ${formatted} (Click to adjust 0.5x – 3.0x)`;
+    }
+    if (speedDisplayVal) speedDisplayVal.textContent = formatted;
+    if (speedSlider) speedSlider.value = m.toString();
+
+    if (save) {
+      chrome.storage.local.set({ tapeSpeedMultiplier: m, tapeSpeed: m * 0.8 });
+    }
   }
 
-  if (tapeSpeedBtn) {
-    chrome.storage.local.get(['tapeSpeed'], (res) => {
-      updateSpeedUI(res.tapeSpeed !== undefined ? res.tapeSpeed : 0.8);
+  // Toggle speed popover
+  if (tapeSpeedBtn && speedPopover) {
+    tapeSpeedBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = speedPopover.style.display !== 'none';
+      speedPopover.style.display = isOpen ? 'none' : 'block';
     });
 
-    tapeSpeedBtn.addEventListener('click', () => {
-      chrome.storage.local.get(['tapeSpeed'], (res) => {
-        const cur = res.tapeSpeed !== undefined ? res.tapeSpeed : 0.8;
-        let idx = speedsList.findIndex(s => Math.abs(s.value - cur) < 0.05);
-        if (idx === -1) idx = 1;
-        const nextIdx = (idx + 1) % speedsList.length;
-        const nextSpeed = speedsList[nextIdx];
-        chrome.storage.local.set({ tapeSpeed: nextSpeed.value }, () => {
-          updateSpeedUI(nextSpeed.value);
-        });
-      });
+    document.addEventListener('click', (e) => {
+      if (speedPopover && !speedPopover.contains(e.target) && e.target !== tapeSpeedBtn) {
+        speedPopover.style.display = 'none';
+      }
     });
   }
+
+  if (speedSlider) {
+    speedSlider.addEventListener('input', (e) => {
+      setSpeedMultiplier(e.target.value);
+    });
+  }
+
+  if (btnSpeedMinus) {
+    btnSpeedMinus.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const cur = parseFloat(speedSlider ? speedSlider.value : 1.0);
+      setSpeedMultiplier(cur - 0.1);
+    });
+  }
+
+  if (btnSpeedPlus) {
+    btnSpeedPlus.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const cur = parseFloat(speedSlider ? speedSlider.value : 1.0);
+      setSpeedMultiplier(cur + 0.1);
+    });
+  }
+
+  // Load Initial Speed
+  chrome.storage.local.get(['tapeSpeedMultiplier', 'tapeSpeed'], (res) => {
+    let initialM = 1.0;
+    if (res.tapeSpeedMultiplier !== undefined) {
+      initialM = parseFloat(res.tapeSpeedMultiplier);
+    } else if (res.tapeSpeed !== undefined) {
+      initialM = parseFloat(res.tapeSpeed) / 0.8;
+    }
+    setSpeedMultiplier(initialM, false);
+  });
 
   // Tape Pause / Resume Icon Button
   const tapePauseBtn = document.getElementById('tape-pause-btn');

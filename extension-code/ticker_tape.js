@@ -27,9 +27,11 @@
   let speed = 0.8; // Default 1x speed in pixels per frame
 
   // Read stored preferences (controlled via side panel)
-  chrome.storage.local.get(['tapePaused', 'tapeSpeed'], (res) => {
+  chrome.storage.local.get(['tapePaused', 'tapeSpeedMultiplier', 'tapeSpeed'], (res) => {
     isPaused = res.tapePaused === true;
-    if (res.tapeSpeed !== undefined && typeof res.tapeSpeed === 'number') {
+    if (res.tapeSpeedMultiplier !== undefined && typeof res.tapeSpeedMultiplier === 'number') {
+      speed = res.tapeSpeedMultiplier * 0.8;
+    } else if (res.tapeSpeed !== undefined && typeof res.tapeSpeed === 'number') {
       speed = res.tapeSpeed;
     }
   });
@@ -40,7 +42,9 @@
       if (changes.tapePaused !== undefined) {
         isPaused = changes.tapePaused.newValue === true;
       }
-      if (changes.tapeSpeed !== undefined) {
+      if (changes.tapeSpeedMultiplier !== undefined) {
+        speed = changes.tapeSpeedMultiplier.newValue * 0.8;
+      } else if (changes.tapeSpeed !== undefined) {
         speed = changes.tapeSpeed.newValue;
       }
       if (changes.cachedData || changes.screenerWatchlist || changes.marketIndices) {

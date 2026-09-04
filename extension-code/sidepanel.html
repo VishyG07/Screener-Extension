@@ -9,7 +9,26 @@
   <div class="screener-header">
     <h2>Screener Pro</h2>
     <div class="screener-header-actions">
-      <button id="tape-speed-btn" class="md-chip-btn" title="Tape Speed: 1x (Click to change)">1x</button>
+      <div style="position:relative;">
+        <button id="tape-speed-btn" class="md-chip-btn" title="Tape Speed: 1.0x (Click to adjust 0.5x – 3.0x)">1.0x</button>
+        <div id="speed-popover" style="display:none; position:absolute; top:34px; right:0; border-radius:8px; padding:12px; box-shadow:0 6px 20px rgba(0,0,0,0.18); z-index:1000; width:185px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:12px; font-weight:500;">Tape Speed</span>
+            <span id="speed-display-val" style="font-size:12px; font-weight:600;">1.0x</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <button id="btn-speed-minus" class="md-icon-btn" style="width:26px; height:26px; font-size:15px; font-weight:bold; line-height:1;" title="Decrease by 0.1x">&minus;</button>
+            <input type="range" id="speed-slider" min="0.5" max="3.0" step="0.1" value="1.0" style="flex:1; cursor:pointer;">
+            <button id="btn-speed-plus" class="md-icon-btn" style="width:26px; height:26px; font-size:15px; font-weight:bold; line-height:1;" title="Increase by 0.1x">+</button>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--label-color, #5f6368); margin-top:6px;">
+            <span>0.5x</span>
+            <span>1.0x</span>
+            <span>2.0x</span>
+            <span>3.0x</span>
+          </div>
+        </div>
+      </div>
       <button id="tape-pause-btn" class="md-icon-btn" title="Pause Ticker Tape" aria-label="Pause/Resume Ticker Tape"></button>
       <button id="theme-toggle" class="md-icon-btn" title="Toggle Theme" aria-label="Toggle Dark/Light Mode"></button>
       <button id="btn-about" class="md-icon-btn" title="About & Support" aria-label="About & Support">
