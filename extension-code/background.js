@@ -479,6 +479,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(err => sendResponse({ success: false, data: [], error: err.message }));
     return true;
   }
+
+  if (message.type === 'SET_TAPE_PAUSED') {
+    const isPaused = message.isPaused === true;
+    chrome.storage.local.set({ tapePaused: isPaused }, () => {
+      chrome.tabs.query({}, (tabs) => {
+        for (const t of (tabs || [])) {
+          if (t && t.id) {
+            chrome.tabs.sendMessage(t.id, { type: 'TAPE_PAUSE_UPDATE', isPaused }, () => {
+              if (chrome.runtime.lastError) {}
+            });
+          }
+        }
+      });
+      sendResponse({ success: true, isPaused });
+    });
+    return true;
+  }
+
+  if (message.type === 'SET_TAPE_SPEED') {
+    const mult = typeof message.speedMultiplier === 'number' ? message.speedMultiplier : 1.0;
+    chrome.storage.local.set({ tapeSpeedMultiplier: mult, tapeSpeed: mult * 0.8 }, () => {
+      chrome.tabs.query({}, (tabs) => {
+        for (const t of (tabs || [])) {
+          if (t && t.id) {
+            chrome.tabs.sendMessage(t.id, { type: 'TAPE_SPEED_UPDATE', speedMultiplier: mult }, () => {
+              if (chrome.runtime.lastError) {}
+            });
+          }
+        }
+      });
+      sendResponse({ success: true, speedMultiplier: mult });
+    });
+    return true;
+  }
 });
 
 // --- Context Menu Logic ---
@@ -681,14 +715,3 @@ fetchFastPrices();
 if (!fastPollInterval) {
   fastPollInterval = setInterval(fetchFastPrices, 1000);
 }
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'PING' || message.type === 'POLL_NOW') {
-    if (!fastPollInterval) {
-      fastPollInterval = setInterval(fetchFastPrices, 1000);
-    }
-    fetchFastPrices();
-    sendResponse({ pong: true });
-    return true;
-  }
-});

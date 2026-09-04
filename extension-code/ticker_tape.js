@@ -109,11 +109,30 @@
   container.addEventListener('mouseenter', () => { isHovered = true; });
   container.addEventListener('mouseleave', () => { isHovered = false; });
 
-  // Window blur safeguard (prevents tape from getting stuck if user switches window while hovering/dragging)
+  // Global mousemove safeguard: If cursor moves anywhere outside the container, clear isHovered
+  document.addEventListener('mousemove', (e) => {
+    if (isHovered && (!container || !container.contains(e.target))) {
+      isHovered = false;
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseleave', () => {
+    isHovered = false;
+  }, { passive: true });
+
+  // Window blur and visibility safeguards (prevents tape from getting stuck)
   window.addEventListener('blur', () => {
     isHovered = false;
     isDragging = false;
-    container.classList.remove('grabbing');
+    if (container) container.classList.remove('grabbing');
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      isHovered = false;
+      isDragging = false;
+      if (container) container.classList.remove('grabbing');
+    }
   });
 
   // --- Continuous GPU-Accelerated Auto-Scroll Engine ---
@@ -218,10 +237,18 @@
   // Initial render
   renderTape();
 
-  // Listen for updates from background script
+  // Listen for updates from background script and sidepanel
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'WATCHLIST_UPDATED') {
       renderTape();
+    }
+    if (msg.type === 'TAPE_PAUSE_UPDATE') {
+      isPaused = msg.isPaused === true;
+    }
+    if (msg.type === 'TAPE_SPEED_UPDATE') {
+      if (typeof msg.speedMultiplier === 'number') {
+        speed = msg.speedMultiplier * 0.8;
+      }
     }
   });
 })();
