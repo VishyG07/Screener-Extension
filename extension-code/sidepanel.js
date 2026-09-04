@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let html = `<div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px;">
         <span style="color:var(--label-color); font-size:13px; font-weight:500;">Market Indices</span>
-        <span style="font-size:11px; color:var(--label-color); display:flex; align-items:center; gap:4px;"><span style="font-size:12px;">✏️</span> Click card to customize</span>
+        <span style="font-size:11px; color:var(--label-color); display:flex; align-items:center; gap:4px;">Click card to customize</span>
       </div>`;
       html += `<div id="market-indices-container" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
 
@@ -757,7 +757,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         html += `
           <div class="pinned-card" data-slot="${slot}" style="background:var(--verdict-bg); border:1px solid var(--border-color); border-radius:8px; padding:12px 10px; text-align:center; position:relative; cursor:pointer; transition:border-color 0.2s, box-shadow 0.2s;" title="Click to edit ${item.key}">
-            <button class="btn-edit-pinned" data-slot="${slot}" style="position:absolute; top:6px; right:6px; background:none; border:none; cursor:pointer; font-size:12px; padding:2px 4px; border-radius:4px; opacity:0.4; transition:opacity 0.2s; color:var(--text-color);" title="Change index or stock">✏️</button>
             <div style="font-weight:600; color:var(--text-color); font-size:13px; margin-bottom:6px; padding:0 14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.key}">${item.key}</div>
             <div class="${flashClass}" style="font-weight:bold; font-size:15px; color:var(--text-color); margin-bottom:4px;">${displayPrice}</div>
             <div style="color:${changeColor}; font-size:11px; font-weight:500;">${changeSign} ${displayPct}</div>
@@ -771,14 +770,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Wire up card hover and edit modal triggers
       resultsSearch.querySelectorAll('.pinned-card').forEach(card => {
-        const editBtn = card.querySelector('.btn-edit-pinned');
         card.addEventListener('mouseenter', () => {
           card.style.borderColor = 'var(--accent-color, #1a73e8)';
-          if (editBtn) editBtn.style.opacity = '1';
         });
         card.addEventListener('mouseleave', () => {
           card.style.borderColor = 'var(--border-color)';
-          if (editBtn) editBtn.style.opacity = '0.4';
         });
         card.addEventListener('click', () => {
           const slot = parseInt(card.getAttribute('data-slot'));
