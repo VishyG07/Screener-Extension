@@ -143,7 +143,7 @@
       const cached = res.cachedData || {};
       const indices = res.marketIndices || {};
       
-      if (list.length === 0 && !indices['NIFTY 50']) {
+      if (list.length === 0 && Object.keys(indices).length === 0) {
         tapeDiv.style.display = 'none';
         document.documentElement.classList.remove('screener-tape-active');
         return;

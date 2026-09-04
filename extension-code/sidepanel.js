@@ -632,45 +632,151 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Default Search Render (Indices) ---
+  // --- Default Search Render (Customizable 4 Pinned Cards) ---
+  const defaultPinnedIndices = [
+    { key: 'BANK NIFTY', symbol: '^NSEBANK', curr: 'INR' },
+    { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
+    { key: 'S&P 500', symbol: '^GSPC', curr: 'USD' },
+    { key: 'SENSEX', symbol: '^BSESN', curr: 'INR' }
+  ];
+
   function renderDefaultSearch() {
-    chrome.storage.local.get(['marketIndices'], (res) => {
+    chrome.storage.local.get(['pinnedIndices', 'marketIndices'], (res) => {
+      const pinned = res.pinnedIndices && res.pinnedIndices.length === 4 ? res.pinnedIndices : defaultPinnedIndices;
       const indices = res.marketIndices || {};
-      
 
-      if (Object.keys(indices).length === 0) {
-        resultsSearch.innerHTML = `<div style="color:var(--label-color); text-align:center; padding:40px 0;">Search for a stock to see quick ratios.</div>`;
-        return;
-      }
-
-      let html = `<div style="color:var(--label-color); text-align:center; padding-bottom:16px; font-size:13px; font-weight:500;">Market Indices</div>`;
+      let html = `<div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px;">
+        <span style="color:var(--label-color); font-size:13px; font-weight:500;">Market Indices</span>
+        <span style="font-size:11px; color:var(--label-color); display:flex; align-items:center; gap:4px;"><span style="font-size:12px;">✏️</span> Click card to customize</span>
+      </div>`;
       html += `<div id="market-indices-container" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
-      
-      for (const [name, data] of Object.entries(indices)) {
+
+      pinned.forEach((item, slot) => {
+        const data = indices[item.key] || {};
         const changeVal = parseFloat(data.changePct || '0');
-        const changeColor = changeVal > 0 ? '#188038' : (changeVal < 0 ? '#d93025' : labelColor);
+        const changeColor = changeVal > 0 ? '#188038' : (changeVal < 0 ? '#d93025' : 'var(--label-color)');
         const changeSign = changeVal > 0 ? '&#9650;' : (changeVal < 0 ? '&#9660;' : '');
         const flashClass = data.flash && (Date.now() - (data.flashTime || 0) < 5000) ? (data.flash === 'up' ? 'screener-flash-up' : 'screener-flash-down') : '';
 
-        // Clean currency symbol and percent sign
-        const rawPrice = String(data.price || '').replace(/^[₹$]\s*/, '').trim();
-        const currencySymbol = (name === 'S&P 500' || name.includes('US') || data.curr === 'USD') ? '$' : '₹';
-        const displayPrice = `${currencySymbol} ${rawPrice}`;
-        const displayPct = Math.abs(changeVal).toFixed(2) + '%';
+        let curPrefix = '₹';
+        if (item.curr === 'USD' || item.key === 'S&P 500') curPrefix = '$';
+        else if (item.curr === 'GBP') curPrefix = '£';
+        else if (item.curr === 'EUR') curPrefix = '€';
+        else if (item.curr === 'JPY') curPrefix = '¥';
+
+        const rawPrice = String(data.price || '').replace(/^[₹$£€¥]\s*/, '').trim();
+        const displayPrice = rawPrice ? `${curPrefix} ${rawPrice}` : 'Loading...';
+        const displayPct = data.changePct ? `${Math.abs(changeVal).toFixed(2)}%` : '0.00%';
 
         html += `
-          <div style="background:var(--verdict-bg); border:1px solid var(--border-color); border-radius:8px; padding:12px; text-align:center;">
-            <div style="font-weight:600; color:var(--text-color); font-size:14px; margin-bottom:8px;">${name}</div>
-            <div class="${flashClass}" style="font-weight:bold; font-size:16px; color:var(--text-color); margin-bottom:4px;">${displayPrice}</div>
-            <div style="color:${changeColor}; font-size:12px; font-weight:500;">${changeSign} ${displayPct}</div>
+          <div class="pinned-card" data-slot="${slot}" style="background:var(--verdict-bg); border:1px solid var(--border-color); border-radius:8px; padding:12px 10px; text-align:center; position:relative; cursor:pointer; transition:border-color 0.2s, box-shadow 0.2s;" title="Click to edit ${item.key}">
+            <button class="btn-edit-pinned" data-slot="${slot}" style="position:absolute; top:6px; right:6px; background:none; border:none; cursor:pointer; font-size:12px; padding:2px 4px; border-radius:4px; opacity:0.4; transition:opacity 0.2s; color:var(--text-color);" title="Change index or stock">✏️</button>
+            <div style="font-weight:600; color:var(--text-color); font-size:13px; margin-bottom:6px; padding:0 14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.key}">${item.key}</div>
+            <div class="${flashClass}" style="font-weight:bold; font-size:15px; color:var(--text-color); margin-bottom:4px;">${displayPrice}</div>
+            <div style="color:${changeColor}; font-size:11px; font-weight:500;">${changeSign} ${displayPct}</div>
           </div>
         `;
-      }
-      
+      });
+
       html += `</div>`;
-      html += `<div style="color:var(--label-color); text-align:center; padding:40px 0 20px 0; font-size:13px;">Search for a stock above to see quick ratios.</div>`;
-      
+      html += `<div style="color:var(--label-color); text-align:center; padding:32px 0 16px 0; font-size:13px;">Search for a stock above to see quick ratios.</div>`;
+
       resultsSearch.innerHTML = html;
+
+      // Wire up card hover and edit modal triggers
+      resultsSearch.querySelectorAll('.pinned-card').forEach(card => {
+        const editBtn = card.querySelector('.btn-edit-pinned');
+        card.addEventListener('mouseenter', () => {
+          card.style.borderColor = 'var(--accent-color, #1a73e8)';
+          if (editBtn) editBtn.style.opacity = '1';
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.borderColor = 'var(--border-color)';
+          if (editBtn) editBtn.style.opacity = '0.4';
+        });
+        card.addEventListener('click', () => {
+          const slot = parseInt(card.getAttribute('data-slot'));
+          openEditPinnedModal(slot);
+        });
+      });
+    });
+  }
+
+  // --- Edit Pinned Card Modal Logic ---
+  let editingPinnedSlot = 0;
+  const editPinnedModal = document.getElementById('edit-pinned-modal');
+  const presetPinnedSelect = document.getElementById('preset-pinned-select');
+  const pinnedDisplayName = document.getElementById('pinned-display-name');
+  const pinnedSymbol = document.getElementById('pinned-symbol');
+  const pinnedCurr = document.getElementById('pinned-curr');
+  const btnPinnedCancel = document.getElementById('btn-pinned-cancel');
+  const btnPinnedSave = document.getElementById('btn-pinned-save');
+
+  function openEditPinnedModal(slot) {
+    editingPinnedSlot = slot;
+    chrome.storage.local.get(['pinnedIndices'], (res) => {
+      const pinned = res.pinnedIndices && res.pinnedIndices.length === 4 ? res.pinnedIndices : defaultPinnedIndices;
+      const cur = pinned[slot] || defaultPinnedIndices[slot];
+      pinnedDisplayName.value = cur.key;
+      pinnedSymbol.value = cur.symbol;
+      pinnedCurr.value = cur.curr || 'INR';
+      if (presetPinnedSelect) presetPinnedSelect.value = '';
+      if (editPinnedModal) editPinnedModal.style.display = 'flex';
+      setTimeout(() => pinnedDisplayName.focus(), 50);
+    });
+  }
+
+  if (presetPinnedSelect) {
+    presetPinnedSelect.addEventListener('change', () => {
+      const val = presetPinnedSelect.value;
+      if (val) {
+        const [sym, name, curr] = val.split('|');
+        pinnedSymbol.value = sym;
+        pinnedDisplayName.value = name;
+        pinnedCurr.value = curr;
+      }
+    });
+  }
+
+  if (btnPinnedCancel && editPinnedModal) {
+    btnPinnedCancel.addEventListener('click', () => {
+      editPinnedModal.style.display = 'none';
+    });
+  }
+
+  if (editPinnedModal) {
+    editPinnedModal.addEventListener('click', (e) => {
+      if (e.target === editPinnedModal) editPinnedModal.style.display = 'none';
+    });
+  }
+
+  if (btnPinnedSave) {
+    btnPinnedSave.addEventListener('click', () => {
+      const name = pinnedDisplayName.value.trim();
+      const sym = pinnedSymbol.value.trim();
+      const curr = pinnedCurr.value;
+
+      if (!name || !sym) {
+        alert('Please enter both a Display Name and Symbol.');
+        return;
+      }
+
+      chrome.storage.local.get(['pinnedIndices', 'marketIndices'], (res) => {
+        let pinned = res.pinnedIndices && res.pinnedIndices.length === 4 ? [...res.pinnedIndices] : [...defaultPinnedIndices];
+        const oldKey = pinned[editingPinnedSlot]?.key;
+        pinned[editingPinnedSlot] = { key: name, symbol: sym, curr: curr };
+        
+        const marketIndices = res.marketIndices || {};
+        if (oldKey && oldKey !== name) {
+          delete marketIndices[oldKey];
+        }
+
+        chrome.storage.local.set({ pinnedIndices: pinned, marketIndices }, () => {
+          if (editPinnedModal) editPinnedModal.style.display = 'none';
+          renderDefaultSearch();
+          chrome.runtime.sendMessage({ type: 'POLL_NOW' });
+        });
+      });
     });
   }
 

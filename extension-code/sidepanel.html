@@ -129,6 +129,79 @@
       <button id="btn-about-close" class="screener-btn screener-btn-secondary" style="width: 100%; padding: 8px 0; font-size: 12px;">Close</button>
     </div>
   </div>
+  <!-- Edit Pinned Market Card Modal -->
+  <div id="edit-pinned-modal" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center;">
+    <div class="screener-watchlist-card" style="width: 285px; padding: 20px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+      <h3 style="margin:0 0 12px 0; font-size:15px; font-weight:600; color:var(--text-color);">Edit Market Card</h3>
+      
+      <div style="margin-bottom: 12px;">
+        <label style="display:block; font-size:11px; font-weight:500; color:var(--label-color); margin-bottom:4px;">Quick Presets:</label>
+        <select id="preset-pinned-select" class="screener-input" style="width:100%; padding:7px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+          <option value="">-- Select an Index or Asset --</option>
+          <optgroup label="Indian Indices">
+            <option value="^NSEI|NIFTY 50|INR">NIFTY 50 (^NSEI)</option>
+            <option value="^NSEBANK|BANK NIFTY|INR">BANK NIFTY (^NSEBANK)</option>
+            <option value="^BSESN|SENSEX|INR">SENSEX (^BSESN)</option>
+            <option value="^CNXIT|NIFTY IT|INR">NIFTY IT (^CNXIT)</option>
+            <option value="NIFTY_FIN_SERVICE.NS|FIN NIFTY|INR">FIN NIFTY</option>
+            <option value="^NSEMDCP50|MIDCAP 50|INR">NIFTY MIDCAP 50</option>
+            <option value="^CNXAUTO|NIFTY AUTO|INR">NIFTY AUTO</option>
+            <option value="^CNXENERGY|NIFTY ENERGY|INR">NIFTY ENERGY</option>
+            <option value="^CNXFMCG|NIFTY FMCG|INR">NIFTY FMCG</option>
+            <option value="^CNXPHARMA|NIFTY PHARMA|INR">NIFTY PHARMA</option>
+          </optgroup>
+          <optgroup label="Global Indices">
+            <option value="^GSPC|S&P 500|USD">S&P 500 (^GSPC)</option>
+            <option value="^IXIC|NASDAQ|USD">NASDAQ (^IXIC)</option>
+            <option value="^DJI|DOW JONES|USD">DOW JONES (^DJI)</option>
+            <option value="^RUT|RUSSELL 2000|USD">RUSSELL 2000 (^RUT)</option>
+            <option value="^FTSE|FTSE 100|GBP">FTSE 100 (^FTSE)</option>
+            <option value="^N225|NIKKEI 225|JPY">NIKKEI 225 (^N225)</option>
+            <option value="^HSI|HANG SENG|USD">HANG SENG (^HSI)</option>
+          </optgroup>
+          <optgroup label="Commodities & Crypto">
+            <option value="GC=F|GOLD|USD">GOLD Futures (GC=F)</option>
+            <option value="SI=F|SILVER|USD">SILVER Futures (SI=F)</option>
+            <option value="CL=F|CRUDE OIL|USD">CRUDE OIL (CL=F)</option>
+            <option value="BTC-USD|BITCOIN|USD">Bitcoin (BTC-USD)</option>
+            <option value="ETH-USD|ETHEREUM|USD">Ethereum (ETH-USD)</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px; margin: 10px 0; color:var(--label-color); font-size:11px;">
+        <div style="flex:1; height:1px; background:var(--border-color);"></div>
+        <span>OR CUSTOM</span>
+        <div style="flex:1; height:1px; background:var(--border-color);"></div>
+      </div>
+
+      <div style="margin-bottom: 10px;">
+        <label style="display:block; font-size:11px; font-weight:500; color:var(--label-color); margin-bottom:4px;">Display Name:</label>
+        <input type="text" id="pinned-display-name" class="screener-input" placeholder="e.g. NIFTY IT, Apple, Reliance" style="width:100%; padding:7px 10px; border-radius:4px; font-size:12px;">
+      </div>
+
+      <div style="margin-bottom: 10px;">
+        <label style="display:block; font-size:11px; font-weight:500; color:var(--label-color); margin-bottom:4px;">Symbol (Yahoo/NSE):</label>
+        <input type="text" id="pinned-symbol" class="screener-input" placeholder="e.g. ^CNXIT, AAPL, RELIANCE.NS" style="width:100%; padding:7px 10px; border-radius:4px; font-size:12px;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size:11px; font-weight:500; color:var(--label-color); margin-bottom:4px;">Currency Symbol:</label>
+        <select id="pinned-curr" class="screener-input" style="width:100%; padding:7px 10px; border-radius:4px; font-size:12px; cursor:pointer;">
+          <option value="INR">₹ (INR - Rupee)</option>
+          <option value="USD">$ (USD - Dollar)</option>
+          <option value="GBP">£ (GBP - Pound)</option>
+          <option value="EUR">€ (EUR - Euro)</option>
+          <option value="JPY">¥ (JPY - Yen)</option>
+        </select>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button id="btn-pinned-cancel" class="screener-btn screener-btn-secondary" style="padding:6px 14px; font-size:12px;">Cancel</button>
+        <button id="btn-pinned-save" class="screener-btn" style="padding:6px 16px; font-size:12px;">Save Card</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
 

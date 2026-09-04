@@ -163,20 +163,27 @@ async function fetchIndices() {
   try {
     const indices = {};
     const formatPrice = (num, curr) => {
-      const prefix = curr === 'USD' ? '$' : '₹';
-      return prefix + Number(num).toLocaleString(curr === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      let prefix = '₹';
+      if (curr === 'USD') prefix = '$';
+      else if (curr === 'GBP') prefix = '£';
+      else if (curr === 'EUR') prefix = '€';
+      else if (curr === 'JPY') prefix = '¥';
+      const locale = curr === 'INR' ? 'en-IN' : 'en-US';
+      return prefix + ' ' + Number(num).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
-    const indexConfigs = [
-      { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
-      { key: 'SENSEX', symbol: '^BSESN', curr: 'INR' },
+    const defaultPinned = [
       { key: 'BANK NIFTY', symbol: '^NSEBANK', curr: 'INR' },
-      { key: 'S&P 500', symbol: '^GSPC', curr: 'USD' }
+      { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
+      { key: 'S&P 500', symbol: '^GSPC', curr: 'USD' },
+      { key: 'SENSEX', symbol: '^BSESN', curr: 'INR' }
     ];
+    const storagePinned = (await chrome.storage.local.get(['pinnedIndices'])).pinnedIndices;
+    const indexConfigs = storagePinned && storagePinned.length === 4 ? storagePinned : defaultPinned;
 
     await Promise.all(indexConfigs.map(async (cfg) => {
       try {
-        const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${cfg.symbol}?interval=1d&range=1d`);
+        const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(cfg.symbol)}?interval=1d&range=1d`);
         if (res.ok) {
           const data = await res.json();
           const meta = data.chart.result[0].meta;
@@ -189,7 +196,8 @@ async function fetchIndices() {
             price: formatPrice(price, cfg.curr),
             rawPrice: price,
             changePct: Math.abs(parseFloat(pct)).toFixed(2) + '%',
-            changeDir: diff >= 0 ? 'up' : 'down'
+            changeDir: diff >= 0 ? 'up' : 'down',
+            curr: cfg.curr
           };
         }
       } catch(e) {}
@@ -505,7 +513,14 @@ async function fetchFastPrices() {
   if (isFetchingFastPrices) return;
   isFetchingFastPrices = true;
   try {
-    const data = await chrome.storage.local.get(['screenerWatchlist', 'portfolios', 'cachedData', 'marketIndices']);
+    const data = await chrome.storage.local.get(['pinnedIndices', 'screenerWatchlist', 'portfolios', 'cachedData', 'marketIndices']);
+    const defaultPinned = [
+      { key: 'BANK NIFTY', symbol: '^NSEBANK', curr: 'INR' },
+      { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
+      { key: 'S&P 500', symbol: '^GSPC', curr: 'USD' },
+      { key: 'SENSEX', symbol: '^BSESN', curr: 'INR' }
+    ];
+    const pinnedIndices = data.pinnedIndices && data.pinnedIndices.length === 4 ? data.pinnedIndices : defaultPinned;
     const screenerWatchlist = data.screenerWatchlist || [];
     const portfolios = data.portfolios || {};
     const cachedData = data.cachedData || {};
@@ -517,7 +532,7 @@ async function fetchFastPrices() {
     }
     allTickers = [...new Set(allTickers)];
 
-    const symbolsToFetch = ['^NSEI', '^BSESN', '^NSEBANK', '^GSPC'];
+    const symbolsToFetch = pinnedIndices.map(p => p.symbol);
     for (const t of allTickers) {
       if (t.startsWith('^') || t.includes('.')) {
         symbolsToFetch.push(t);
@@ -536,15 +551,17 @@ async function fetchFastPrices() {
       const sparkData = await res.json();
       let changed = false;
 
-      // Process standard indices
-      const indexKeys = [
-        { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
-        { key: 'SENSEX', symbol: '^BSESN', curr: 'INR' },
-        { key: 'BANK NIFTY', symbol: '^NSEBANK', curr: 'INR' },
-        { key: 'S&P 500', symbol: '^GSPC', curr: 'USD' }
-      ];
+      // Clean up stale index keys when cards are modified
+      const validKeys = new Set(pinnedIndices.map(p => p.key));
+      for (const k of Object.keys(marketIndices)) {
+        if (!validKeys.has(k)) {
+          delete marketIndices[k];
+          changed = true;
+        }
+      }
 
-      for (const idx of indexKeys) {
+      // Process pinned cards/indices
+      for (const idx of pinnedIndices) {
         const d = sparkData[idx.symbol];
         if (d) {
           const prices = d.close || [];
@@ -558,15 +575,36 @@ async function fetchFastPrices() {
             const prev = d.previousClose;
             const diff = prev ? price - prev : 0;
             const pct = prev ? ((diff / prev) * 100).toFixed(2) : '0.00';
-            const prefix = idx.curr === 'USD' ? '$' : '₹';
-            const formatted = `${prefix} ${price.toLocaleString(idx.curr === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            if (marketIndices[idx.key]?.price !== formatted) {
+            
+            let prefix = '₹';
+            if (idx.curr === 'USD') prefix = '$';
+            else if (idx.curr === 'GBP') prefix = '£';
+            else if (idx.curr === 'EUR') prefix = '€';
+            else if (idx.curr === 'JPY') prefix = '¥';
+            const locale = idx.curr === 'INR' ? 'en-IN' : 'en-US';
+            const formatted = `${prefix} ${price.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            
+            const oldIdx = marketIndices[idx.key];
+            let flash = oldIdx?.flash;
+            let flashTime = oldIdx?.flashTime;
+
+            if (oldIdx && oldIdx.price && oldIdx.price !== formatted) {
+              const oldNum = parseFloat((oldIdx.price || '0').replace(/[^\d\.]/g, ''));
+              if (oldNum && oldNum !== price) {
+                flash = price > oldNum ? 'up' : 'down';
+                flashTime = Date.now();
+              }
+            }
+
+            if (marketIndices[idx.key]?.price !== formatted || flash !== oldIdx?.flash) {
               marketIndices[idx.key] = {
                 symbol: idx.symbol,
                 price: formatted,
                 curr: idx.curr,
                 changeDir: diff >= 0 ? 'up' : 'down',
-                changePct: Math.abs(parseFloat(pct)).toFixed(2) + '%'
+                changePct: Math.abs(parseFloat(pct)).toFixed(2) + '%',
+                flash,
+                flashTime
               };
               changed = true;
             }
