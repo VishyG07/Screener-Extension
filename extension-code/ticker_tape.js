@@ -22,8 +22,8 @@
   let isDragging = false;
   let isHovered = false;
   let startX = 0;
-  let scrollStart = 0;
-  let scrollPos = 0;
+  let dragStartX = 0;
+  let currentX = 0;
   let speed = 0.8; // Default 1x speed in pixels per frame
 
   // Read stored preferences (controlled via side panel)
@@ -54,33 +54,32 @@
     if (e.button !== 0) return; // Left click only
     isDragging = true;
     startX = e.pageX;
-    scrollStart = container.scrollLeft;
+    dragStartX = currentX;
     container.classList.add('grabbing');
   });
 
   window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const dx = e.pageX - startX;
-    scrollPos = scrollStart - dx;
+    currentX = dragStartX + dx;
 
-    // Seamless infinite wrap while dragging
+    // Infinite loop wrap while dragging
     const halfWidth = marquee.scrollWidth / 2;
-    if (halfWidth > 50) {
-      if (scrollPos <= 0) {
-        scrollPos += halfWidth;
-        scrollStart += halfWidth;
-      } else if (scrollPos >= halfWidth) {
-        scrollPos -= halfWidth;
-        scrollStart -= halfWidth;
+    if (halfWidth > 0) {
+      if (currentX > 0) {
+        currentX -= halfWidth;
+        dragStartX -= halfWidth;
+      } else if (Math.abs(currentX) >= halfWidth) {
+        currentX += halfWidth;
+        dragStartX += halfWidth;
       }
     }
-    container.scrollLeft = scrollPos;
+    marquee.style.transform = `translate3d(${currentX}px, 0, 0)`;
   });
 
   window.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
-      scrollPos = container.scrollLeft;
       container.classList.remove('grabbing');
     }
   });
@@ -89,33 +88,40 @@
   container.addEventListener('wheel', (e) => {
     e.preventDefault();
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    scrollPos += delta;
+    currentX -= delta;
 
     const halfWidth = marquee.scrollWidth / 2;
-    if (halfWidth > 50) {
-      if (scrollPos <= 0) {
-        scrollPos += halfWidth;
-      } else if (scrollPos >= halfWidth) {
-        scrollPos -= halfWidth;
+    if (halfWidth > 0) {
+      if (currentX > 0) {
+        currentX -= halfWidth;
+      } else if (Math.abs(currentX) >= halfWidth) {
+        currentX += halfWidth;
       }
     }
-    container.scrollLeft = scrollPos;
+    marquee.style.transform = `translate3d(${currentX}px, 0, 0)`;
   }, { passive: false });
 
-  // Hover detection (temporarily pause scrolling while user reads)
+  // Hover detection (temporarily pause scrolling while user actively hovers)
   container.addEventListener('mouseenter', () => { isHovered = true; });
   container.addEventListener('mouseleave', () => { isHovered = false; });
 
-  // --- High Performance Auto-Scroll Engine ---
-  // Uses sub-pixel floating accumulator so it runs silky smooth regardless of screen DPI
+  // Window blur safeguard (prevents tape from getting stuck if user switches window while hovering/dragging)
+  window.addEventListener('blur', () => {
+    isHovered = false;
+    isDragging = false;
+    container.classList.remove('grabbing');
+  });
+
+  // --- Continuous GPU-Accelerated Auto-Scroll Engine ---
+  // Uses translate3d which never hits DOM scroll limits or integer truncation issues
   function autoScrollStep() {
     if (!isPaused && !isDragging && !isHovered) {
-      scrollPos += speed;
+      currentX -= speed;
       const halfWidth = marquee.scrollWidth / 2;
-      if (halfWidth > 50 && scrollPos >= halfWidth) {
-        scrollPos -= halfWidth;
+      if (halfWidth > 0 && Math.abs(currentX) >= halfWidth) {
+        currentX += halfWidth;
       }
-      container.scrollLeft = scrollPos;
+      marquee.style.transform = `translate3d(${currentX}px, 0, 0)`;
     }
     requestAnimationFrame(autoScrollStep);
   }
@@ -190,16 +196,13 @@
         }
       }
       
-      // Preserve current scroll position during re-render
-      const prevScroll = container.scrollLeft;
       if (html === '') {
         marquee.innerHTML = `<div class="screener-ticker-item">Loading Screener Watchlist...</div>`;
       } else {
-        // Render duplicate content for seamless, infinite looping
-        marquee.innerHTML = html + html;
+        // Repeat items 4 times so content always spans comfortably beyond screen width
+        marquee.innerHTML = html + html + html + html;
       }
-      container.scrollLeft = prevScroll;
-      scrollPos = prevScroll;
+      marquee.style.transform = `translate3d(${currentX}px, 0, 0)`;
     });
   }
 
