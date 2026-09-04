@@ -734,7 +734,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let html = `<div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:12px;">
         <span style="color:var(--label-color); font-size:13px; font-weight:500;">Market Indices</span>
-        <span style="font-size:11px; color:var(--label-color); display:flex; align-items:center; gap:4px;">Click card to customize</span>
       </div>`;
       html += `<div id="market-indices-container" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
 
