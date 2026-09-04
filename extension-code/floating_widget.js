@@ -68,8 +68,8 @@
     } else if (res.fwState === 'closed') {
       // closed completely
     } else {
-      // default is closed — widget must be opened from sidepanel; minimizedTab stays hidden
-      // This prevents the right-edge tab from blocking page elements on websites
+      // default is minimized
+      minimizedTab.style.display = 'block';
     }
   });
 
@@ -384,10 +384,10 @@
           const div = document.createElement('div');
           div.className = 'screener-fw-s-item';
           const itemType = item.type || 'Stock';
-          div.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;">' +
-            '<span style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + item.name + '">' + item.name + '</span>' +
-            '<span style="font-size:9px; padding:1px 5px; border-radius:3px; background:#353a45; color:#a0aec0; border:1px solid #484f5f; flex-shrink:0;">' + itemType + '</span>' +
-          '</div>';
+          div.innerHTML = `
+            <span class="screener-fw-s-item-name" title="${item.name}">${item.name}</span>
+            <span class="screener-fw-s-item-type">${itemType}</span>
+          `;
           div.onclick = () => {
             const ticker = item.ticker || (item.url ? item.url.split('/')[2] : item.name);
             inputEl.value = '';
