@@ -163,6 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   loadPortfolios();
   renderDefaultSearch();
+  renderWatchlist(); // Instantly render watchlist from cache with zero delay!
 
   portfolioSelect.addEventListener('change', (e) => {
     activePortfolio = e.target.value;
@@ -488,17 +489,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderWatchlist() {
-    chrome.storage.local.get(['portfolios', 'cachedData', 'priceAlerts'], (res) => {
+    // Single consolidated fetch for instant rendering with zero network delay
+    chrome.storage.local.get(['portfolios', 'screenerWatchlist', 'cachedData', 'notes', 'alerts'], (res) => {
       const ports = res.portfolios || {};
-      const list = ports[activePortfolio] || [];
+      const list = ports[activePortfolio] || res.screenerWatchlist || [];
       const cached = res.cachedData || {};
+      const notesObj = res.notes || {};
+      const alertsObj = res.alerts || {};
 
       if (list.length === 0) {
-        wlItemsContainer.innerHTML = '<div style="text-align:center;color:#6c757d;padding:20px;">Watchlist is empty. Add a ticker above!</div>';
+        wlItemsContainer.innerHTML = '<div style="text-align:center;color:var(--label-color);padding:24px 16px;font-size:13px;">Watchlist is empty. Search and add a ticker above!</div>';
         return;
       }
-      
-      
 
       let html = `<div style="width:100%; overflow-x:auto; border:1px solid var(--border-color); border-radius:8px;">
         <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right; color:var(--text-color); white-space:nowrap;">
@@ -513,10 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>
           </thead>
           <tbody>`;
-
-      chrome.storage.local.get(['notes', 'alerts'], (localData) => {
-        const notesObj = localData.notes || {};
-        const alertsObj = localData.alerts || {};
         
         let idx = 0;
         for (const ticker of list) {
@@ -569,7 +567,6 @@ document.addEventListener('DOMContentLoaded', () => {
         wlItemsContainer.querySelectorAll('.screener-del-btn').forEach(b => b.onclick = () => removeTicker(b.getAttribute('data-ticker')));
         wlItemsContainer.querySelectorAll('.screener-note-btn').forEach(b => b.onclick = () => openNoteModal(b.getAttribute('data-ticker')));
         wlItemsContainer.querySelectorAll('.screener-alert-btn').forEach(b => b.onclick = () => openAlertModal(b.getAttribute('data-ticker')));
-      });
     });
   }
 
