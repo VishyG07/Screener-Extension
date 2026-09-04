@@ -4,6 +4,16 @@
 
   const tapeDiv = document.createElement('div');
   tapeDiv.id = 'screener-ticker-tape';
+
+  const controls = document.createElement('div');
+  controls.id = 'screener-tape-controls';
+
+  const pauseBtn = document.createElement('button');
+  pauseBtn.id = 'screener-tape-pause-btn';
+  pauseBtn.innerHTML = '&#10074;&#10074;'; // ⏸
+  pauseBtn.title = 'Pause ticker tape';
+  controls.appendChild(pauseBtn);
+  tapeDiv.appendChild(controls);
   
   const container = document.createElement('div');
   container.className = 'screener-marquee-container';
@@ -16,6 +26,31 @@
   
   document.documentElement.appendChild(tapeDiv);
   document.documentElement.classList.add('screener-tape-active');
+
+  let isPaused = false;
+  function updatePauseState(paused) {
+    isPaused = paused;
+    if (isPaused) {
+      marquee.classList.add('paused');
+      pauseBtn.innerHTML = '&#9654;'; // ▶
+      pauseBtn.title = 'Resume ticker tape';
+    } else {
+      marquee.classList.remove('paused');
+      pauseBtn.innerHTML = '&#10074;&#10074;'; // ⏸
+      pauseBtn.title = 'Pause ticker tape';
+    }
+  }
+
+  chrome.storage.local.get(['tapePaused'], (res) => {
+    updatePauseState(!!res.tapePaused);
+  });
+
+  pauseBtn.onclick = (e) => {
+    e.stopPropagation();
+    isPaused = !isPaused;
+    updatePauseState(isPaused);
+    chrome.storage.local.set({ tapePaused: isPaused });
+  };
 
   function renderTape() {
     chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices', ''], (res) => {
@@ -112,8 +147,13 @@
 
   // Also listen to storage changes directly
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && (changes.cachedData || changes.screenerWatchlist || false)) {
-      renderTape();
+    if (namespace === 'local') {
+      if (changes.tapePaused !== undefined) {
+        updatePauseState(!!changes.tapePaused.newValue);
+      }
+      if (changes.cachedData || changes.screenerWatchlist) {
+        renderTape();
+      }
     }
   });
 })();

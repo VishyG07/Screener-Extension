@@ -55,6 +55,23 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ theme });
   });
 
+  const tapePauseBtn = document.getElementById('tape-pause-btn');
+  if (tapePauseBtn) {
+    chrome.storage.local.get(['tapePaused'], (res) => {
+      tapePauseBtn.textContent = res.tapePaused ? '\u25B6' : '\u23F8';
+      tapePauseBtn.title = res.tapePaused ? 'Resume Ticker Tape' : 'Pause Ticker Tape';
+    });
+    tapePauseBtn.addEventListener('click', () => {
+      chrome.storage.local.get(['tapePaused'], (res) => {
+        const nextState = !res.tapePaused;
+        chrome.storage.local.set({ tapePaused: nextState }, () => {
+          tapePauseBtn.textContent = nextState ? '\u25B6' : '\u23F8';
+          tapePauseBtn.title = nextState ? 'Resume Ticker Tape' : 'Pause Ticker Tape';
+        });
+      });
+    });
+  }
+
   // --- Multi-Portfolio Logic ---
   function loadPortfolios() {
     chrome.storage.local.get(['portfolios', 'screenerWatchlist'], (res) => {
