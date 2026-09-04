@@ -360,8 +360,17 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Run once on startup
 syncWatchlistData();
 
-// Listen for forced syncs from UI
+// Consolidated message listener for all extension components
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'PING' || message.type === 'POLL_NOW') {
+    if (!fastPollInterval) {
+      fastPollInterval = setInterval(fetchFastPrices, 1000);
+    }
+    fetchFastPrices();
+    sendResponse({ pong: true });
+    return true;
+  }
+
   if (message.type === 'FORCE_SYNC') {
     if (message.ticker) {
       fetchScreenerData(message.ticker).then(data => {
@@ -370,6 +379,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           cachedData[message.ticker] = data;
           chrome.storage.local.set({ cachedData }, () => {
              sendResponse({ success: true });
+             chrome.runtime.sendMessage({ type: 'WATCHLIST_UPDATED' }).catch(() => {});
           });
         });
       }).catch(err => {
@@ -386,64 +396,69 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SEARCH_COMPANY') {
     const query = message.query;
     (async () => {
-      const [screenerRes, yahooRes] = await Promise.allSettled([
-        fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(query)}`).then(r => r.ok ? r.json() : []),
-        fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=7&newsCount=0`).then(r => r.ok ? r.json() : { quotes: [] })
-      ]);
+      try {
+        const [screenerRes, yahooRes] = await Promise.allSettled([
+          fetch('https://www.screener.in/api/company/search/?q=' + encodeURIComponent(query)).then(r => r.ok ? r.json() : []),
+          fetch('https://query1.finance.yahoo.com/v1/finance/search?q=' + encodeURIComponent(query) + '&quotesCount=7&newsCount=0').then(r => r.ok ? r.json() : { quotes: [] })
+        ]);
 
-      const results = [];
-      const seenTickers = new Set();
+        const results = [];
+        const seenTickers = new Set();
 
-      const screenerList = screenerRes.status === 'fulfilled' ? screenerRes.value : [];
-      if (Array.isArray(screenerList)) {
-        for (const item of screenerList) {
-          const parts = (item.url || '').split('/');
-          const ticker = parts[2] || '';
-          if (ticker && !seenTickers.has(ticker.toUpperCase())) {
-            seenTickers.add(ticker.toUpperCase());
-            results.push({
-              name: item.name,
-              ticker: ticker,
-              type: 'Indian Stock',
-              url: item.url || (`/company/${ticker}/`),
-              source: 'screener'
-            });
+        const screenerList = screenerRes.status === 'fulfilled' ? screenerRes.value : [];
+        if (Array.isArray(screenerList)) {
+          for (const item of screenerList) {
+            const parts = (item.url || '').split('/');
+            const ticker = parts[2] || '';
+            if (ticker && !seenTickers.has(ticker.toUpperCase())) {
+              seenTickers.add(ticker.toUpperCase());
+              results.push({
+                name: item.name,
+                ticker: ticker,
+                type: 'Indian Stock',
+                url: item.url || ('/company/' + ticker + '/'),
+                source: 'screener'
+              });
+            }
           }
         }
+
+        const yahooData = yahooRes.status === 'fulfilled' ? yahooRes.value : {};
+        const yahooQuotes = yahooData.quotes || [];
+        for (const q of yahooQuotes) {
+          if (!q.symbol) continue;
+          const sym = q.symbol.toUpperCase();
+          const cleanSym = sym.replace('.NS', '').replace('.BO', '');
+          if (seenTickers.has(sym) || seenTickers.has(cleanSym)) continue;
+
+          let type = 'Stock';
+          if (q.quoteType === 'INDEX' || sym.startsWith('^')) type = 'Index';
+          else if (q.quoteType === 'ETF') type = 'ETF';
+          else if (q.exchange) type = q.exchange + ' Stock';
+
+          const displayName = q.shortname || q.longname || q.symbol;
+          seenTickers.add(sym);
+          results.push({
+            name: displayName + ' (' + q.symbol + ')',
+            ticker: q.symbol,
+            type: type,
+            url: '/company/' + q.symbol + '/',
+            source: 'yahoo'
+          });
+        }
+
+        sendResponse(results);
+      } catch (err) {
+        console.error('Error in SEARCH_COMPANY:', err);
+        sendResponse([]);
       }
-
-      const yahooData = yahooRes.status === 'fulfilled' ? yahooRes.value : {};
-      const yahooQuotes = yahooData.quotes || [];
-      for (const q of yahooQuotes) {
-        if (!q.symbol) continue;
-        const sym = q.symbol.toUpperCase();
-        const cleanSym = sym.replace('.NS', '').replace('.BO', '');
-        if (seenTickers.has(sym) || seenTickers.has(cleanSym)) continue;
-
-        let type = 'Stock';
-        if (q.quoteType === 'INDEX' || sym.startsWith('^')) type = 'Index';
-        else if (q.quoteType === 'ETF') type = 'ETF';
-        else if (q.exchange) type = `${q.exchange} Stock`;
-
-        const displayName = q.shortname || q.longname || q.symbol;
-        seenTickers.add(sym);
-        results.push({
-          name: `${displayName} (${q.symbol})`,
-          ticker: q.symbol,
-          type: type,
-          url: `/company/${q.symbol}/`,
-          source: 'yahoo'
-        });
-      }
-
-      sendResponse(results);
-    })().catch(() => sendResponse([]));
+    })();
     return true;
   }
 
   if (message.type === 'CORPORATE_ACTIONS') {
     const { symbol } = message;
-    fetch(`https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol=${encodeURIComponent(symbol)}`, {
+    fetch('https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol=' + encodeURIComponent(symbol), {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/json',
@@ -452,7 +467,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     })
       .then(res => res.ok ? res.json() : [])
       .then(data => {
-        // Return top 10 most recent, with just the key fields
         const trimmed = (Array.isArray(data) ? data : []).slice(0, 10).map(a => ({
           symbol: a.symbol,
           subject: a.subject,

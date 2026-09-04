@@ -309,6 +309,23 @@
   let debounceTimer;
   let activeIndex = -1;
 
+  function searchCompanies(query) {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ type: 'SEARCH_COMPANY', query: query }, (res) => {
+          if (chrome.runtime.lastError) {
+            console.warn('[FloatingWidget] search error:', chrome.runtime.lastError.message);
+            resolve([]);
+          } else {
+            resolve(res || []);
+          }
+        });
+      } catch (e) {
+        resolve([]);
+      }
+    });
+  }
+
   inputEl.addEventListener('keydown', (e) => {
     const items = suggestionsEl.querySelectorAll('.screener-fw-s-item');
     if (!items.length || suggestionsEl.style.display === 'none') return;
@@ -327,7 +344,13 @@
       e.preventDefault();
       if (activeIndex >= 0 && activeIndex < items.length) {
         items[activeIndex].click();
+      } else if (items.length > 0) {
+        items[0].click();
       }
+    } else if (e.key === 'Escape') {
+      suggestionsEl.style.display = 'none';
+      suggestionsEl.innerHTML = '';
+      activeIndex = -1;
     }
   });
 
@@ -341,25 +364,19 @@
     });
   }
 
-  inputEl.addEventListener('input', (e) => {
+  inputEl.addEventListener('input', () => {
     clearTimeout(debounceTimer);
     const query = inputEl.value.trim();
     if (query.length < 2) {
       suggestionsEl.style.display = 'none';
+      suggestionsEl.innerHTML = '';
       return;
     }
 
     debounceTimer = setTimeout(async () => {
-      let results = [];
-      try {
-        results = await chrome.runtime.sendMessage({ type: 'SEARCH_COMPANY', query: query });
-      } catch (err) {
-        try {
-          const res = await fetch(`https://www.screener.in/api/company/search/?q=${encodeURIComponent(query)}`);
-          if (res.ok) results = await res.json();
-        } catch (e) {}
-      }
-      
+      const results = await searchCompanies(query);
+      if (inputEl.value.trim() !== query) return;
+
       if (results && results.length > 0) {
         suggestionsEl.innerHTML = '';
         activeIndex = -1;
@@ -367,16 +384,15 @@
           const div = document.createElement('div');
           div.className = 'screener-fw-s-item';
           const itemType = item.type || 'Stock';
-          div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-              <span style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:6px;">${item.name}</span>
-              <span style="font-size:9px; padding:1px 4px; border-radius:3px; background:#f1f3f4; color:#3c4043; border:1px solid #dadce0; flex-shrink:0;">${itemType}</span>
-            </div>
-          `;
+          div.innerHTML = '<div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;">' +
+            '<span style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + item.name + '">' + item.name + '</span>' +
+            '<span style="font-size:9px; padding:1px 5px; border-radius:3px; background:#353a45; color:#a0aec0; border:1px solid #484f5f; flex-shrink:0;">' + itemType + '</span>' +
+          '</div>';
           div.onclick = () => {
             const ticker = item.ticker || (item.url ? item.url.split('/')[2] : item.name);
             inputEl.value = '';
             suggestionsEl.style.display = 'none';
+            suggestionsEl.innerHTML = '';
             
             chrome.storage.local.get(['screenerWatchlist', 'portfolios'], (res) => {
               let list = res.screenerWatchlist || [];
@@ -387,7 +403,7 @@
                 list.push(ticker);
                 portfolios['Default'] = list;
                 chrome.storage.local.set({ screenerWatchlist: list, portfolios: portfolios }, () => {
-                  chrome.runtime.sendMessage({ type: 'FORCE_SYNC', ticker });
+                  chrome.runtime.sendMessage({ type: 'FORCE_SYNC', ticker }, () => {});
                   renderTable();
                 });
               }
@@ -397,14 +413,18 @@
         });
         suggestionsEl.style.display = 'block';
       } else {
-        suggestionsEl.style.display = 'none';
+        suggestionsEl.innerHTML = '<div style="padding:10px 12px; color:#9e9e9e; font-size:12px; text-align:center;">No results found</div>';
+        suggestionsEl.style.display = 'block';
       }
-    }, 300);
+    }, 250);
   });
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.screener-fw-search')) {
-      if (suggestionsEl) suggestionsEl.style.display = 'none';
+      if (suggestionsEl) {
+        suggestionsEl.style.display = 'none';
+        suggestionsEl.innerHTML = '';
+      }
     }
   });
 
