@@ -4,23 +4,6 @@
 
   const tapeDiv = document.createElement('div');
   tapeDiv.id = 'screener-ticker-tape';
-
-  const controls = document.createElement('div');
-  controls.id = 'screener-tape-controls';
-
-  const pauseBtn = document.createElement('button');
-  pauseBtn.id = 'screener-tape-pause-btn';
-  pauseBtn.innerHTML = '&#10074;&#10074;'; // ⏸
-  pauseBtn.title = 'Pause ticker tape';
-  controls.appendChild(pauseBtn);
-
-  const speedBtn = document.createElement('button');
-  speedBtn.id = 'screener-tape-speed-btn';
-  speedBtn.innerHTML = '1x';
-  speedBtn.title = 'Change scroll speed (0.5x, 1x, 1.5x, 2x)';
-  controls.appendChild(speedBtn);
-
-  tapeDiv.appendChild(controls);
   
   const container = document.createElement('div');
   container.className = 'screener-marquee-container';
@@ -34,72 +17,42 @@
   document.documentElement.appendChild(tapeDiv);
   document.documentElement.classList.add('screener-tape-active');
 
+  // --- State Variables ---
   let isPaused = false;
   let isDragging = false;
   let isHovered = false;
   let startX = 0;
   let scrollStart = 0;
-  let hasMoved = false;
+  let scrollPos = 0;
+  let speed = 0.8; // Default 1x speed in pixels per frame
 
-  const speeds = [
-    { label: '0.5x', value: 0.4, title: 'Slow (0.5x)' },
-    { label: '1x', value: 0.8, title: 'Normal (1x)' },
-    { label: '1.5x', value: 1.2, title: 'Fast (1.5x)' },
-    { label: '2x', value: 1.6, title: 'Ultra Fast (2x)' }
-  ];
-  let currentSpeedIndex = 1; // default 1x
-  let speed = speeds[currentSpeedIndex].value;
-
-  function setSpeedByValue(val) {
-    const idx = speeds.findIndex(s => Math.abs(s.value - val) < 0.05);
-    currentSpeedIndex = idx >= 0 ? idx : 1;
-    speed = speeds[currentSpeedIndex].value;
-    speedBtn.innerHTML = speeds[currentSpeedIndex].label;
-    speedBtn.title = `Scroll Speed: ${speeds[currentSpeedIndex].title} (Click to change)`;
-  }
-
-  speedBtn.onclick = (e) => {
-    e.stopPropagation();
-    currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
-    speed = speeds[currentSpeedIndex].value;
-    speedBtn.innerHTML = speeds[currentSpeedIndex].label;
-    speedBtn.title = `Scroll Speed: ${speeds[currentSpeedIndex].title} (Click to change)`;
-    chrome.storage.local.set({ tapeSpeed: speed });
-  };
-
-  chrome.storage.local.get(['tapeSpeed'], (res) => {
-    if (res.tapeSpeed !== undefined) {
-      setSpeedByValue(res.tapeSpeed);
+  // Read stored preferences (controlled via side panel)
+  chrome.storage.local.get(['tapePaused', 'tapeSpeed'], (res) => {
+    isPaused = res.tapePaused === true;
+    if (res.tapeSpeed !== undefined && typeof res.tapeSpeed === 'number') {
+      speed = res.tapeSpeed;
     }
   });
 
-  function updatePauseState(paused) {
-    isPaused = paused;
-    if (isPaused) {
-      pauseBtn.innerHTML = '&#9654;'; // ▶
-      pauseBtn.title = 'Resume ticker tape';
-    } else {
-      pauseBtn.innerHTML = '&#10074;&#10074;'; // ⏸
-      pauseBtn.title = 'Pause ticker tape';
+  // Listen for control updates from side panel
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local') {
+      if (changes.tapePaused !== undefined) {
+        isPaused = changes.tapePaused.newValue === true;
+      }
+      if (changes.tapeSpeed !== undefined) {
+        speed = changes.tapeSpeed.newValue;
+      }
+      if (changes.cachedData || changes.screenerWatchlist || changes.marketIndices) {
+        renderTape();
+      }
     }
-  }
-
-  chrome.storage.local.get(['tapePaused'], (res) => {
-    updatePauseState(!!res.tapePaused);
   });
 
-  pauseBtn.onclick = (e) => {
-    e.stopPropagation();
-    isPaused = !isPaused;
-    updatePauseState(isPaused);
-    chrome.storage.local.set({ tapePaused: isPaused });
-  };
-
-  // --- Interactive Grab-and-Scroll (Drag Left / Right) ---
+  // --- Interactive Grab-and-Drag (Left / Right) ---
   container.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return; // Left click only
     isDragging = true;
-    hasMoved = false;
     startX = e.pageX;
     scrollStart = container.scrollLeft;
     container.classList.add('grabbing');
@@ -108,71 +61,69 @@
   window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const dx = e.pageX - startX;
-    if (Math.abs(dx) > 3) hasMoved = true;
-    container.scrollLeft = scrollStart - dx;
+    scrollPos = scrollStart - dx;
 
-    // Infinite loop wrapping while dragging
+    // Seamless infinite wrap while dragging
     const halfWidth = marquee.scrollWidth / 2;
-    if (halfWidth > 100) {
-      if (container.scrollLeft <= 0) {
-        container.scrollLeft += halfWidth;
+    if (halfWidth > 50) {
+      if (scrollPos <= 0) {
+        scrollPos += halfWidth;
         scrollStart += halfWidth;
-      } else if (container.scrollLeft >= halfWidth) {
-        container.scrollLeft -= halfWidth;
+      } else if (scrollPos >= halfWidth) {
+        scrollPos -= halfWidth;
         scrollStart -= halfWidth;
       }
     }
+    container.scrollLeft = scrollPos;
   });
 
   window.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
+      scrollPos = container.scrollLeft;
       container.classList.remove('grabbing');
     }
   });
 
-  // Trackpad and Mouse Wheel Horizontal Scroll
+  // Mouse wheel and trackpad horizontal scrolling
   container.addEventListener('wheel', (e) => {
     e.preventDefault();
     const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-    container.scrollLeft += delta;
+    scrollPos += delta;
 
     const halfWidth = marquee.scrollWidth / 2;
-    if (halfWidth > 100) {
-      if (container.scrollLeft <= 0) {
-        container.scrollLeft += halfWidth;
-      } else if (container.scrollLeft >= halfWidth) {
-        container.scrollLeft -= halfWidth;
+    if (halfWidth > 50) {
+      if (scrollPos <= 0) {
+        scrollPos += halfWidth;
+      } else if (scrollPos >= halfWidth) {
+        scrollPos -= halfWidth;
       }
     }
+    container.scrollLeft = scrollPos;
   }, { passive: false });
 
-  // Hover detection to pause on mouse hover
+  // Hover detection (temporarily pause scrolling while user reads)
   container.addEventListener('mouseenter', () => { isHovered = true; });
   container.addEventListener('mouseleave', () => { isHovered = false; });
 
-  // Continuous Auto-Scroll Engine
+  // --- High Performance Auto-Scroll Engine ---
+  // Uses sub-pixel floating accumulator so it runs silky smooth regardless of screen DPI
   function autoScrollStep() {
     if (!isPaused && !isDragging && !isHovered) {
-      container.scrollLeft += speed;
+      scrollPos += speed;
       const halfWidth = marquee.scrollWidth / 2;
-      if (halfWidth > 100 && container.scrollLeft >= halfWidth) {
-        container.scrollLeft -= halfWidth;
+      if (halfWidth > 50 && scrollPos >= halfWidth) {
+        scrollPos -= halfWidth;
       }
+      container.scrollLeft = scrollPos;
     }
     requestAnimationFrame(autoScrollStep);
   }
   requestAnimationFrame(autoScrollStep);
 
+  // --- Render Tape Content ---
   function renderTape() {
-    chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices', ''], (res) => {
-      const isEnabled = true;
-      if (!isEnabled) {
-        tapeDiv.style.display = 'none';
-        document.documentElement.classList.remove('screener-tape-active');
-        return;
-      }
-      
+    chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices'], (res) => {
       const list = res.screenerWatchlist || [];
       const cached = res.cachedData || {};
       const indices = res.marketIndices || {};
@@ -186,10 +137,9 @@
       tapeDiv.style.display = 'flex';
       document.documentElement.classList.add('screener-tape-active');
       
-      marquee.innerHTML = '';
       let html = '';
       
-      // Add All Configured Indices (Nifty 50, Sensex, Bank Nifty, S&P 500)
+      // Add Market Indices (Nifty 50, Sensex, Bank Nifty, S&P 500)
       for (const [idxName, idx] of Object.entries(indices)) {
         if (!idx || !idx.price) continue;
         const isUp = idx.changeDir === 'up' || parseFloat(idx.changePct) >= 0;
@@ -201,7 +151,7 @@
            flashClass = idx.flash === 'up' ? 'screener-tape-flash-up' : 'screener-tape-flash-down';
         }
 
-        const formattedPrice = (idx.price.startsWith('\u20B9') || idx.price.startsWith('$')) ? idx.price : `\u20B9${idx.price}`;
+        const formattedPrice = (idx.price.startsWith('\u20B9') || idx.price.startsWith('$')) ? idx.price : ('\u20B9' + idx.price);
 
         html += `
           <div class="screener-ticker-item" style="color: #ff9800;">
@@ -212,6 +162,7 @@
         `;
       }
       
+      // Add Watchlist Stocks
       for (const ticker of list) {
         const data = cached[ticker];
         if (data && data.success) {
@@ -239,13 +190,16 @@
         }
       }
       
+      // Preserve current scroll position during re-render
+      const prevScroll = container.scrollLeft;
       if (html === '') {
-        html = `<div class="screener-ticker-item">Loading Screener Watchlist...</div>`;
-        marquee.innerHTML = html;
+        marquee.innerHTML = `<div class="screener-ticker-item">Loading Screener Watchlist...</div>`;
       } else {
         // Render duplicate content for seamless, infinite looping
         marquee.innerHTML = html + html;
       }
+      container.scrollLeft = prevScroll;
+      scrollPos = prevScroll;
     });
   }
 
@@ -258,23 +212,9 @@
       renderTape();
     }
   });
-
-  // Also listen to storage changes directly
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local') {
-      if (changes.tapePaused !== undefined) {
-        updatePauseState(!!changes.tapePaused.newValue);
-      }
-      if (changes.tapeSpeed !== undefined) {
-        setSpeedByValue(changes.tapeSpeed.newValue);
-      }
-      if (changes.cachedData || changes.screenerWatchlist) {
-        renderTape();
-      }
-    }
-  });
 })();
-// Keep background worker alive and trigger ultra-fast price polling
+
+// Keep background worker active and trigger price polling from any webpage
 setInterval(() => {
   try {
     chrome.runtime.sendMessage({ type: 'PING' }, () => {
