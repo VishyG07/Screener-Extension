@@ -13,6 +13,13 @@
   pauseBtn.innerHTML = '&#10074;&#10074;'; // ⏸
   pauseBtn.title = 'Pause ticker tape';
   controls.appendChild(pauseBtn);
+
+  const speedBtn = document.createElement('button');
+  speedBtn.id = 'screener-tape-speed-btn';
+  speedBtn.innerHTML = '1x';
+  speedBtn.title = 'Change scroll speed (0.5x, 1x, 1.5x, 2x)';
+  controls.appendChild(speedBtn);
+
   tapeDiv.appendChild(controls);
   
   const container = document.createElement('div');
@@ -33,7 +40,38 @@
   let startX = 0;
   let scrollStart = 0;
   let hasMoved = false;
-  const speed = 0.8; // Smooth auto-scroll speed
+
+  const speeds = [
+    { label: '0.5x', value: 0.4, title: 'Slow (0.5x)' },
+    { label: '1x', value: 0.8, title: 'Normal (1x)' },
+    { label: '1.5x', value: 1.2, title: 'Fast (1.5x)' },
+    { label: '2x', value: 1.6, title: 'Ultra Fast (2x)' }
+  ];
+  let currentSpeedIndex = 1; // default 1x
+  let speed = speeds[currentSpeedIndex].value;
+
+  function setSpeedByValue(val) {
+    const idx = speeds.findIndex(s => Math.abs(s.value - val) < 0.05);
+    currentSpeedIndex = idx >= 0 ? idx : 1;
+    speed = speeds[currentSpeedIndex].value;
+    speedBtn.innerHTML = speeds[currentSpeedIndex].label;
+    speedBtn.title = `Scroll Speed: ${speeds[currentSpeedIndex].title} (Click to change)`;
+  }
+
+  speedBtn.onclick = (e) => {
+    e.stopPropagation();
+    currentSpeedIndex = (currentSpeedIndex + 1) % speeds.length;
+    speed = speeds[currentSpeedIndex].value;
+    speedBtn.innerHTML = speeds[currentSpeedIndex].label;
+    speedBtn.title = `Scroll Speed: ${speeds[currentSpeedIndex].title} (Click to change)`;
+    chrome.storage.local.set({ tapeSpeed: speed });
+  };
+
+  chrome.storage.local.get(['tapeSpeed'], (res) => {
+    if (res.tapeSpeed !== undefined) {
+      setSpeedByValue(res.tapeSpeed);
+    }
+  });
 
   function updatePauseState(paused) {
     isPaused = paused;
@@ -226,6 +264,9 @@
     if (namespace === 'local') {
       if (changes.tapePaused !== undefined) {
         updatePauseState(!!changes.tapePaused.newValue);
+      }
+      if (changes.tapeSpeed !== undefined) {
+        setSpeedByValue(changes.tapeSpeed.newValue);
       }
       if (changes.cachedData || changes.screenerWatchlist) {
         renderTape();

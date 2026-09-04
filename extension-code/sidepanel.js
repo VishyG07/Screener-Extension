@@ -55,6 +55,34 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.local.set({ theme });
   });
 
+  const tapeSpeedBtn = document.getElementById('tape-speed-btn');
+  const speedsList = [
+    { label: '0.5x', value: 0.4 },
+    { label: '1x', value: 0.8 },
+    { label: '1.5x', value: 1.2 },
+    { label: '2x', value: 1.6 }
+  ];
+  if (tapeSpeedBtn) {
+    chrome.storage.local.get(['tapeSpeed'], (res) => {
+      const cur = res.tapeSpeed || 0.8;
+      const found = speedsList.find(s => Math.abs(s.value - cur) < 0.05);
+      tapeSpeedBtn.textContent = found ? found.label : '1x';
+    });
+    tapeSpeedBtn.addEventListener('click', () => {
+      chrome.storage.local.get(['tapeSpeed'], (res) => {
+        const cur = res.tapeSpeed || 0.8;
+        let idx = speedsList.findIndex(s => Math.abs(s.value - cur) < 0.05);
+        if (idx === -1) idx = 1;
+        const nextIdx = (idx + 1) % speedsList.length;
+        const nextSpeed = speedsList[nextIdx];
+        chrome.storage.local.set({ tapeSpeed: nextSpeed.value }, () => {
+          tapeSpeedBtn.textContent = nextSpeed.label;
+          tapeSpeedBtn.title = `Tape Speed: ${nextSpeed.label} (Click to change)`;
+        });
+      });
+    });
+  }
+
   const tapePauseBtn = document.getElementById('tape-pause-btn');
   if (tapePauseBtn) {
     chrome.storage.local.get(['tapePaused'], (res) => {
