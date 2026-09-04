@@ -674,15 +674,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = document.createElement('div');
         card.style.cssText = 'border:1px solid var(--border-color); border-radius:8px; margin-bottom:10px; overflow:hidden;';
         
-        const next = data[0] ? `Next: ${data[0].subject.substring(0, 35)}${data[0].subject.length > 35 ? 'â€¦' : ''} (${data[0].exDate})` : '';
+        const next = data[0] ? `Next: ${data[0].subject.substring(0, 35)}${data[0].subject.length > 35 ? '...' : ''} (${data[0].exDate})` : '';
 
         card.innerHTML = `
-          <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;" class="corp-header">
-            <div>
-              <span style="font-weight:600; color:var(--link-green); font-size:14px;">${ticker}</span>
-              <span style="font-size:11px; color:var(--label-color); margin-left:10px;">${next}</span>
+          <div style="background:var(--header-bg); padding:10px 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; white-space:nowrap;" class="corp-header">
+            <div style="display:flex; align-items:center; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width:0; flex:1; margin-right:8px;">
+              <span style="font-weight:600; color:var(--link-green); font-size:14px; flex-shrink:0;">${ticker}</span>
+              <span style="font-size:11px; color:var(--label-color); margin-left:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${next}</span>
             </div>
-            <span class="corp-toggle" style="font-size:16px; color:var(--label-color); transition:transform 0.2s;">\u25BE</span>
+            <span class="corp-toggle" style="font-size:16px; color:var(--label-color); transition:transform 0.2s; flex-shrink:0;">\u25BE</span>
           </div>
           <div class="corp-body" style="padding:8px 12px; display:none;">
             ${buildActionsTable(data)}

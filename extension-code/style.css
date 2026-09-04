@@ -45,19 +45,20 @@ body {
   display: flex;
   border-bottom: 1px solid #dadce0;
   background: #ffffff;
-  padding: 0 12px;
+  padding: 0 6px;
 }
 .screener-tab {
   flex: 1;
-  padding: 8px 16px;
+  padding: 8px 6px;
   text-align: center;
   cursor: pointer;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13px;
   color: #5f6368;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
   font-family: 'Google Sans', Roboto, sans-serif;
+  white-space: nowrap;
 }
 .screener-tab.active {
   color: #1a73e8;
