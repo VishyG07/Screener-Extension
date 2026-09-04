@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       let html = `<div style="color:var(--label-color); text-align:center; padding-bottom:16px; font-size:13px; font-weight:500;">Market Indices</div>`;
-      html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
+      html += `<div id="market-indices-container" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">`;
       
       for (const [name, data] of Object.entries(indices)) {
         const changeVal = parseFloat(data.changePct || '0');
@@ -704,7 +704,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Listen for background updates
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'WATCHLIST_UPDATED') {
-       if (tabSearch.classList.contains('active')) renderWatchlist();
+       if (tabSearch.classList.contains('active')) {
+         renderWatchlist();
+         if (!inputSearch.value.trim() && resultsSearch.querySelector('#market-indices-container')) {
+           renderDefaultSearch();
+         }
+       }
     }
   });
 
@@ -845,7 +850,7 @@ setInterval(() => {
       if (chrome.runtime.lastError) { /* ignore */ }
     });
   } catch(e) {}
-}, 10000);
+}, 1000);
 
 
 

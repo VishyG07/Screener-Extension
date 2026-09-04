@@ -124,4 +124,4 @@ setInterval(() => {
       if (chrome.runtime.lastError) { /* ignore */ }
     });
   } catch(e) {}
-}, 10000);
+}, 1000);

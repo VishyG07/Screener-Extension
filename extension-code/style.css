@@ -542,3 +542,17 @@ body.dark-mode {
   --verdict-border: #3c4043;
   --btn-wl-bg: #188038;
 }
+
+@keyframes pulseLive {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+.screener-live-dot {
+  width: 7px;
+  height: 7px;
+  background-color: #188038;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseLive 1.5s infinite;
+}

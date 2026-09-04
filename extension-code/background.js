@@ -1,3 +1,5 @@
+let fastPollInterval = null;
+let isFetchingFastPrices = false;
 // Open side panel on action icon click
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => console.error(error));
 
@@ -500,34 +502,40 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // Fast price polling (only hits Yahoo Finance, avoids Screener rate limits)
 async function fetchFastPrices() {
-  const data = await chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices']);
-  const screenerWatchlist = data.screenerWatchlist || [];
-  const cachedData = data.cachedData || {};
-  const marketIndices = data.marketIndices || {};
-  
-  // Indices to fetch
-  const symbolsToFetch = ['^NSEI', '^BSESN', '^NSEBANK', '^GSPC'];
+  if (isFetchingFastPrices) return;
+  isFetchingFastPrices = true;
+  try {
+    const data = await chrome.storage.local.get(['screenerWatchlist', 'portfolios', 'cachedData', 'marketIndices']);
+    const screenerWatchlist = data.screenerWatchlist || [];
+    const portfolios = data.portfolios || {};
+    const cachedData = data.cachedData || {};
+    const marketIndices = data.marketIndices || {};
 
-  for (const t of screenerWatchlist) {
-    if (t.startsWith('^') || t.includes('.')) {
-      symbolsToFetch.push(t);
-    } else {
-      const cached = cachedData[t];
-      if (cached && cached.currency && cached.currency !== 'INR') {
+    let allTickers = [...screenerWatchlist];
+    for (const list of Object.values(portfolios)) {
+      if (Array.isArray(list)) allTickers.push(...list);
+    }
+    allTickers = [...new Set(allTickers)];
+
+    const symbolsToFetch = ['^NSEI', '^BSESN', '^NSEBANK', '^GSPC'];
+    for (const t of allTickers) {
+      if (t.startsWith('^') || t.includes('.')) {
         symbolsToFetch.push(t);
       } else {
-        symbolsToFetch.push(t + '.NS');
+        const cached = cachedData[t];
+        if (cached && cached.currency && cached.currency !== 'INR') {
+          symbolsToFetch.push(t);
+        } else {
+          symbolsToFetch.push(t + '.NS');
+        }
       }
     }
-  }
-  
-  let changed = false;
-  
-  try {
+
     const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/spark?symbols=${encodeURIComponent(symbolsToFetch.join(','))}&interval=1m&range=1d`);
     if (res.ok) {
       const sparkData = await res.json();
-      
+      let changed = false;
+
       // Process standard indices
       const indexKeys = [
         { key: 'NIFTY 50', symbol: '^NSEI', curr: 'INR' },
@@ -544,16 +552,19 @@ async function fetchFastPrices() {
           for (let i = prices.length - 1; i >= 0; i--) {
             if (prices[i] !== null && prices[i] !== undefined) { price = prices[i]; break; }
           }
+          if (price === null && d.previousClose !== undefined) price = d.previousClose;
+
           if (price !== null) {
             const prev = d.previousClose;
             const diff = prev ? price - prev : 0;
             const pct = prev ? ((diff / prev) * 100).toFixed(2) : '0.00';
             const prefix = idx.curr === 'USD' ? '$' : '₹';
-            const formatted = prefix + price.toLocaleString(idx.curr === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const formatted = `${prefix} ${price.toLocaleString(idx.curr === 'USD' ? 'en-US' : 'en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             if (marketIndices[idx.key]?.price !== formatted) {
               marketIndices[idx.key] = {
                 symbol: idx.symbol,
                 price: formatted,
+                curr: idx.curr,
                 changeDir: diff >= 0 ? 'up' : 'down',
                 changePct: Math.abs(parseFloat(pct)).toFixed(2) + '%'
               };
@@ -562,9 +573,9 @@ async function fetchFastPrices() {
           }
         }
       }
-      
+
       // Process Watchlist
-      for (const ticker of screenerWatchlist) {
+      for (const ticker of allTickers) {
         const nsKey = ticker + '.NS';
         const d = sparkData[ticker] || sparkData[nsKey];
         if (d) {
@@ -573,18 +584,26 @@ async function fetchFastPrices() {
           for (let i = prices.length - 1; i >= 0; i--) {
             if (prices[i] !== null && prices[i] !== undefined) { price = prices[i]; break; }
           }
+          if (price === null && d.previousClose !== undefined) price = d.previousClose;
+
           if (price !== null) {
             const prev = d.previousClose;
             const diff = prev ? price - prev : 0;
             const pct = prev ? ((diff / prev) * 100).toFixed(2) : '0.00';
-            
+
             if (!cachedData[ticker]) cachedData[ticker] = { ratios: {} };
             if (!cachedData[ticker].ratios) cachedData[ticker].ratios = {};
-            
+
             const curr = cachedData[ticker]?.currency === 'USD' ? '$' : (cachedData[ticker]?.currency === 'INR' ? '₹' : (cachedData[ticker]?.isIndex ? '' : '₹'));
             const currentStr = cachedData[ticker].ratios['Current Price'];
-            const formattedPrice = `${curr}${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const formattedPrice = `${curr} ${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
             if (currentStr !== formattedPrice) {
+              const oldNum = parseFloat((currentStr || '0').replace(/[^\d\.]/g, ''));
+              if (oldNum && oldNum !== price) {
+                cachedData[ticker].flash = price > oldNum ? 'up' : 'down';
+                cachedData[ticker].flashTime = Date.now();
+              }
               cachedData[ticker].ratios['Current Price'] = formattedPrice;
               cachedData[ticker].changePct = Math.abs(parseFloat(pct)).toFixed(2) + '%';
               cachedData[ticker].changeDir = diff >= 0 ? 'up' : 'down';
@@ -593,22 +612,31 @@ async function fetchFastPrices() {
           }
         }
       }
+
+      if (changed) {
+        await chrome.storage.local.set({ cachedData, marketIndices, lastFastPoll: Date.now() });
+        chrome.runtime.sendMessage({ type: 'WATCHLIST_UPDATED' }).catch(() => {});
+      }
     }
-  } catch(e) {}
-  
-  if (changed) {
-    await chrome.storage.local.set({ cachedData, marketIndices });
-    chrome.runtime.sendMessage({ type: 'WATCHLIST_UPDATED' }).catch(() => {});
+  } catch (e) {
+  } finally {
+    isFetchingFastPrices = false;
   }
 }
 
+// Start 1-second ultra-fast live price updates
+fetchFastPrices();
+if (!fastPollInterval) {
+  fastPollInterval = setInterval(fetchFastPrices, 1000);
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'PING') {
+  if (message.type === 'PING' || message.type === 'POLL_NOW') {
     if (!fastPollInterval) {
-      fetchFastPrices(); // Fetch immediately on first ping
-      fastPollInterval = setInterval(fetchFastPrices, 1000); // 1-second ultra-fast batched poll // 10 second ultra-fast poll
+      fastPollInterval = setInterval(fetchFastPrices, 1000);
     }
-    sendResponse({pong: true});
-    return true; // Needed to indicate async response
+    fetchFastPrices();
+    sendResponse({ pong: true });
+    return true;
   }
 });
