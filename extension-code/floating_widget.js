@@ -1,4 +1,4 @@
-﻿// floating_widget.js
+// floating_widget.js
 (function() {
   if (document.getElementById('screener-fw-container')) return; // Already injected
 
@@ -68,8 +68,8 @@
     } else if (res.fwState === 'closed') {
       // closed completely
     } else {
-      // default is minimized
-      minimizedTab.style.display = 'block';
+      // default is closed — widget must be opened from sidepanel; minimizedTab stays hidden
+      // This prevents the right-edge tab from blocking page elements on websites
     }
   });
 

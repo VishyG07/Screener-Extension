@@ -5,16 +5,17 @@
   left: 0;
   width: 100%;
   height: 30px;
+  overflow: hidden;
   background-color: #2d3139;
   color: #f1f1f1;
-  z-index: 2147483647;
+  z-index: 2147483640;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 14px;
   display: flex;
   align-items: center;
-  overflow: hidden;
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
+
 
 .screener-marquee-container {
   width: 100%;

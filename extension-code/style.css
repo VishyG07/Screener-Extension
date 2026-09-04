@@ -649,100 +649,70 @@ body.dark-mode {
   animation: pulseLive 1.5s infinite;
 }
 
-/* Tape Speed Chip with Direct Type Option */
-.md-speed-chip {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 6px 0 8px;
-  border-radius: 4px;
+/* Speed Popover */
+#speed-popover {
+  background-color: #ffffff;
+  border: 1px solid #dadce0;
+  color: #202124;
+}
+#speed-display-val {
+  color: #188038;
+}
+#speed-popover input[type="range"] {
+  accent-color: #188038;
+}
+#btn-speed-minus, #btn-speed-plus {
   border: 1px solid #dadce0;
   background-color: #f1f3f4;
   color: #3c4043;
-  font-family: 'Google Sans', Roboto, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  box-sizing: border-box;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  user-select: none;
 }
-
-.md-speed-chip:hover {
+#btn-speed-minus:hover, #btn-speed-plus:hover {
   background-color: #e8eaed;
-  border-color: #bdc1c6;
   color: #202124;
 }
-
-.md-speed-chip:focus-within {
-  background-color: #ffffff;
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 1px #1a73e8;
-  color: #202124;
-}
-
-#tape-speed-input {
-  width: 28px;
-  border: none;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: inherit;
-  text-align: right;
+#speed-custom-input {
   outline: none;
-  cursor: text;
   -moz-appearance: textfield;
 }
-
-#tape-speed-input::-webkit-outer-spin-button,
-#tape-speed-input::-webkit-inner-spin-button {
+#speed-custom-input::-webkit-outer-spin-button,
+#speed-custom-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
-.md-speed-unit {
-  font-size: 12px;
-  font-weight: 600;
-  color: #5f6368;
-  padding-left: 2px;
-  cursor: pointer;
+#speed-custom-input:focus {
+  border-color: #1a73e8 !important;
+  box-shadow: 0 0 0 1px #1a73e8;
 }
 
-.md-speed-unit:hover {
-  color: #1a73e8;
+body.dark-mode #speed-popover {
+  background-color: #353a45 !important;
+  border-color: #484f5f !important;
+  color: #f0f2f5 !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45) !important;
 }
-
-body.dark-mode .md-speed-chip {
-  border-color: #484f5f;
-  background-color: #353a45;
-  color: #f0f2f5;
+body.dark-mode #speed-display-val {
+  color: #85d996 !important;
 }
-
-body.dark-mode .md-speed-chip:hover {
-  background-color: #414856;
-  border-color: #5a6375;
+body.dark-mode #speed-popover input[type="range"] {
+  accent-color: #85d996;
 }
-
-body.dark-mode .md-speed-chip:focus-within {
-  background-color: #2d3139;
-  border-color: #79a8ff;
-  box-shadow: 0 0 0 1px #79a8ff;
-  color: #f0f2f5;
+body.dark-mode #btn-speed-minus, body.dark-mode #btn-speed-plus {
+  border-color: #484f5f !important;
+  background-color: #2d3139 !important;
+  color: #f0f2f5 !important;
 }
-
-body.dark-mode #tape-speed-input {
-  color: #f0f2f5;
+body.dark-mode #btn-speed-minus:hover, body.dark-mode #btn-speed-plus:hover {
+  background-color: #414856 !important;
+  border-color: #5a6375 !important;
 }
-
-body.dark-mode .md-speed-unit {
-  color: #abb3c2;
+body.dark-mode #speed-custom-input {
+  background-color: #2d3139 !important;
+  border-color: #484f5f !important;
+  color: #f0f2f5 !important;
 }
-
-body.dark-mode .md-speed-unit:hover {
-  color: #79a8ff;
+body.dark-mode #speed-custom-input:focus {
+  border-color: #79a8ff !important;
+  box-shadow: 0 0 0 1px #79a8ff !important;
 }
 
 /* Tape Paused Button State */
@@ -764,4 +734,5 @@ body.dark-mode .md-icon-btn.tape-is-paused {
   background-color: rgba(253, 214, 99, 0.15) !important;
   border-color: rgba(253, 214, 99, 0.35) !important;
 }
+
 
