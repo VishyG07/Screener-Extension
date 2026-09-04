@@ -46,17 +46,17 @@ body {
   gap: 6px;
 }
 
-/* Material Design 3 Chip Button for Speed */
+/* Material Design 3 Chip Button for Speed (Sharp 4px Corners) */
 .md-chip-btn {
   height: 28px;
-  padding: 0 10px;
-  border-radius: 14px;
+  padding: 0 9px;
+  border-radius: 4px;
   border: 1px solid #dadce0;
   background-color: #f1f3f4;
   color: #3c4043;
   font-family: 'Google Sans', Roboto, sans-serif;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -72,12 +72,12 @@ body {
   color: #202124;
 }
 
-/* Material Design 3 Circular Icon Buttons */
+/* Material Design 3 Icon Buttons (Sharp 4px Corners) */
 .md-icon-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid transparent;
   background: transparent;
   color: #5f6368;
   cursor: pointer;
@@ -92,6 +92,7 @@ body {
 
 .md-icon-btn:hover {
   background-color: rgba(60, 64, 67, 0.08);
+  border-color: #dadce0;
   color: #202124;
 }
 
@@ -420,24 +421,27 @@ body.dark-mode .screener-header h2 {
   color: #f0f2f5;
 }
 body.dark-mode .md-chip-btn {
-  background-color: #353a45;
-  border-color: #484f5f;
-  color: #abb3c2;
+  background-color: #353a45 !important;
+  border-color: #484f5f !important;
+  color: #f0f2f5 !important;
+  border-radius: 4px;
 }
 body.dark-mode .md-chip-btn:hover {
-  background-color: #414856;
-  border-color: #5a6375;
-  color: #f0f2f5;
+  background-color: #414856 !important;
+  border-color: #5a6375 !important;
+  color: #ffffff !important;
 }
 body.dark-mode .md-icon-btn {
-  color: #abb3c2;
+  color: #abb3c2 !important;
+  border-radius: 4px;
 }
 body.dark-mode .md-icon-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #f0f2f5;
+  background-color: #353a45 !important;
+  border-color: #484f5f !important;
+  color: #f0f2f5 !important;
 }
 body.dark-mode .md-icon-btn:active {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: #414856 !important;
 }
 body.dark-mode .screener-tab {
   color: #abb3c2;
