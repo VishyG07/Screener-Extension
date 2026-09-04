@@ -795,8 +795,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       html += `</div>`;
-      html += `<div style="color:var(--label-color); text-align:center; padding:32px 0 16px 0; font-size:13px;">Search for a stock above to see quick ratios.</div>`;
-
+      
       resultsSearch.innerHTML = html;
 
       // Wire up card hover and edit modal triggers

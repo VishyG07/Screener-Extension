@@ -153,7 +153,7 @@ body {
 .screener-search-container {
   width: 100%;
   box-sizing: border-box;
-  padding: 16px 0;
+  padding: 10px 0;
   display: flex;
   gap: 12px;
   position: relative;
@@ -205,8 +205,9 @@ body {
 }
 
 .screener-results {
-  flex-grow: 1;
-  padding: 0 0 24px 0;
+  flex-shrink: 0;
+  padding: 0;
+  margin-bottom: 6px;
 }
 
 .screener-results h3 {
