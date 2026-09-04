@@ -129,8 +129,13 @@
 
   // --- Render Tape Content ---
   function renderTape() {
-    chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices'], (res) => {
-      const list = res.screenerWatchlist || [];
+    chrome.storage.local.get(['screenerWatchlist', 'portfolios', 'cachedData', 'marketIndices'], (res) => {
+      let list = res.screenerWatchlist || [];
+      const portfolios = res.portfolios || {};
+      for (const portList of Object.values(portfolios)) {
+        if (Array.isArray(portList)) list.push(...portList);
+      }
+      list = [...new Set(list)];
       const cached = res.cachedData || {};
       const indices = res.marketIndices || {};
       
