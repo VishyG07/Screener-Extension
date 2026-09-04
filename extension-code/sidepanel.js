@@ -140,6 +140,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // About & Support Modal
+  const btnAbout = document.getElementById('btn-about');
+  const aboutModal = document.getElementById('about-modal');
+  const btnAboutClose = document.getElementById('btn-about-close');
+
+  if (btnAbout && aboutModal) {
+    btnAbout.addEventListener('click', () => {
+      aboutModal.style.display = 'flex';
+    });
+  }
+  if (btnAboutClose && aboutModal) {
+    btnAboutClose.addEventListener('click', () => {
+      aboutModal.style.display = 'none';
+    });
+  }
+  if (aboutModal) {
+    aboutModal.addEventListener('click', (e) => {
+      if (e.target === aboutModal) aboutModal.style.display = 'none';
+    });
+  }
+
+
   // --- Multi-Portfolio Logic ---
   function loadPortfolios() {
     chrome.storage.local.get(['portfolios', 'screenerWatchlist'], (res) => {
