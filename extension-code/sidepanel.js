@@ -44,17 +44,43 @@ document.addEventListener('DOMContentLoaded', () => {
   tabNews.addEventListener('click', () => switchTab(tabNews, viewNews));
   tabActions.addEventListener('click', () => switchTab(tabActions, viewActions));
   tabActions.addEventListener('click', () => switchTab(tabActions, viewActions));
-  // Load Settings
+  // --- Google Material Design 3 Header Controls ---
+  const svgMoon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>`;
+  const svgSun = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0 0 1.41l1.06 1.06c.39.39.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>`;
+  const svgPause = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+  const svgPlay = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.body.classList.add('dark-mode');
+      if (themeToggle) {
+        themeToggle.innerHTML = svgSun;
+        themeToggle.title = 'Switch to Light Mode';
+      }
+    } else {
+      document.body.classList.remove('dark-mode');
+      if (themeToggle) {
+        themeToggle.innerHTML = svgMoon;
+        themeToggle.title = 'Switch to Dark Mode';
+      }
+    }
+  }
+
+  // Load Initial Theme
   chrome.storage.local.get(['theme'], (res) => {
-    if (res.theme === 'dark') document.body.classList.add('dark-mode');
+    applyTheme(res.theme || 'light');
   });
 
-  themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    const theme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-    chrome.storage.local.set({ theme });
-  });
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.body.classList.contains('dark-mode');
+      const nextTheme = isDark ? 'light' : 'dark';
+      applyTheme(nextTheme);
+      chrome.storage.local.set({ theme: nextTheme });
+    });
+  }
 
+  // Tape Speed Control Chip
   const tapeSpeedBtn = document.getElementById('tape-speed-btn');
   const speedsList = [
     { label: '0.5x', value: 0.4 },
@@ -62,39 +88,53 @@ document.addEventListener('DOMContentLoaded', () => {
     { label: '1.5x', value: 1.2 },
     { label: '2x', value: 1.6 }
   ];
+
+  function updateSpeedUI(val) {
+    if (!tapeSpeedBtn) return;
+    const found = speedsList.find(s => Math.abs(s.value - val) < 0.05);
+    const label = found ? found.label : '1x';
+    tapeSpeedBtn.textContent = label;
+    tapeSpeedBtn.title = `Tape Speed: ${label} (Click to change)`;
+  }
+
   if (tapeSpeedBtn) {
     chrome.storage.local.get(['tapeSpeed'], (res) => {
-      const cur = res.tapeSpeed || 0.8;
-      const found = speedsList.find(s => Math.abs(s.value - cur) < 0.05);
-      tapeSpeedBtn.textContent = found ? found.label : '1x';
+      updateSpeedUI(res.tapeSpeed !== undefined ? res.tapeSpeed : 0.8);
     });
+
     tapeSpeedBtn.addEventListener('click', () => {
       chrome.storage.local.get(['tapeSpeed'], (res) => {
-        const cur = res.tapeSpeed || 0.8;
+        const cur = res.tapeSpeed !== undefined ? res.tapeSpeed : 0.8;
         let idx = speedsList.findIndex(s => Math.abs(s.value - cur) < 0.05);
         if (idx === -1) idx = 1;
         const nextIdx = (idx + 1) % speedsList.length;
         const nextSpeed = speedsList[nextIdx];
         chrome.storage.local.set({ tapeSpeed: nextSpeed.value }, () => {
-          tapeSpeedBtn.textContent = nextSpeed.label;
-          tapeSpeedBtn.title = `Tape Speed: ${nextSpeed.label} (Click to change)`;
+          updateSpeedUI(nextSpeed.value);
         });
       });
     });
   }
 
+  // Tape Pause / Resume Icon Button
   const tapePauseBtn = document.getElementById('tape-pause-btn');
+
+  function updatePauseUI(isPaused) {
+    if (!tapePauseBtn) return;
+    tapePauseBtn.innerHTML = isPaused ? svgPlay : svgPause;
+    tapePauseBtn.title = isPaused ? 'Resume Ticker Tape' : 'Pause Ticker Tape';
+  }
+
   if (tapePauseBtn) {
     chrome.storage.local.get(['tapePaused'], (res) => {
-      tapePauseBtn.textContent = res.tapePaused ? '\u25B6' : '\u23F8';
-      tapePauseBtn.title = res.tapePaused ? 'Resume Ticker Tape' : 'Pause Ticker Tape';
+      updatePauseUI(res.tapePaused === true);
     });
+
     tapePauseBtn.addEventListener('click', () => {
       chrome.storage.local.get(['tapePaused'], (res) => {
-        const nextState = !res.tapePaused;
+        const nextState = !(res.tapePaused === true);
         chrome.storage.local.set({ tapePaused: nextState }, () => {
-          tapePauseBtn.textContent = nextState ? '\u25B6' : '\u23F8';
-          tapePauseBtn.title = nextState ? 'Resume Ticker Tape' : 'Pause Ticker Tape';
+          updatePauseUI(nextState);
         });
       });
     });
