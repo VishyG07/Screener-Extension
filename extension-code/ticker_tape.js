@@ -28,14 +28,19 @@
   document.documentElement.classList.add('screener-tape-active');
 
   let isPaused = false;
+  let isDragging = false;
+  let isHovered = false;
+  let startX = 0;
+  let scrollStart = 0;
+  let hasMoved = false;
+  const speed = 0.8; // Smooth auto-scroll speed
+
   function updatePauseState(paused) {
     isPaused = paused;
     if (isPaused) {
-      marquee.classList.add('paused');
       pauseBtn.innerHTML = '&#9654;'; // ▶
       pauseBtn.title = 'Resume ticker tape';
     } else {
-      marquee.classList.remove('paused');
       pauseBtn.innerHTML = '&#10074;&#10074;'; // ⏸
       pauseBtn.title = 'Pause ticker tape';
     }
@@ -51,6 +56,75 @@
     updatePauseState(isPaused);
     chrome.storage.local.set({ tapePaused: isPaused });
   };
+
+  // --- Interactive Grab-and-Scroll (Drag Left / Right) ---
+  container.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return; // Left click only
+    isDragging = true;
+    hasMoved = false;
+    startX = e.pageX;
+    scrollStart = container.scrollLeft;
+    container.classList.add('grabbing');
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const dx = e.pageX - startX;
+    if (Math.abs(dx) > 3) hasMoved = true;
+    container.scrollLeft = scrollStart - dx;
+
+    // Infinite loop wrapping while dragging
+    const halfWidth = marquee.scrollWidth / 2;
+    if (halfWidth > 100) {
+      if (container.scrollLeft <= 0) {
+        container.scrollLeft += halfWidth;
+        scrollStart += halfWidth;
+      } else if (container.scrollLeft >= halfWidth) {
+        container.scrollLeft -= halfWidth;
+        scrollStart -= halfWidth;
+      }
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      container.classList.remove('grabbing');
+    }
+  });
+
+  // Trackpad and Mouse Wheel Horizontal Scroll
+  container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    container.scrollLeft += delta;
+
+    const halfWidth = marquee.scrollWidth / 2;
+    if (halfWidth > 100) {
+      if (container.scrollLeft <= 0) {
+        container.scrollLeft += halfWidth;
+      } else if (container.scrollLeft >= halfWidth) {
+        container.scrollLeft -= halfWidth;
+      }
+    }
+  }, { passive: false });
+
+  // Hover detection to pause on mouse hover
+  container.addEventListener('mouseenter', () => { isHovered = true; });
+  container.addEventListener('mouseleave', () => { isHovered = false; });
+
+  // Continuous Auto-Scroll Engine
+  function autoScrollStep() {
+    if (!isPaused && !isDragging && !isHovered) {
+      container.scrollLeft += speed;
+      const halfWidth = marquee.scrollWidth / 2;
+      if (halfWidth > 100 && container.scrollLeft >= halfWidth) {
+        container.scrollLeft -= halfWidth;
+      }
+    }
+    requestAnimationFrame(autoScrollStep);
+  }
+  requestAnimationFrame(autoScrollStep);
 
   function renderTape() {
     chrome.storage.local.get(['screenerWatchlist', 'cachedData', 'marketIndices', ''], (res) => {
@@ -129,9 +203,11 @@
       
       if (html === '') {
         html = `<div class="screener-ticker-item">Loading Screener Watchlist...</div>`;
+        marquee.innerHTML = html;
+      } else {
+        // Render duplicate content for seamless, infinite looping
+        marquee.innerHTML = html + html;
       }
-      
-      marquee.innerHTML = html;
     });
   }
 
